@@ -168,4 +168,84 @@ public class Queries {
 }
 
 
+/**
+ * Get the average track duration for all tracks in a user specified album
+ *
+ * @param alb
+ * @param conn
+ */
+public static void getAvgTrackDurationAlbum(String alb, Connection conn){
+    ResultSet rs = null;
+    PreparedStatement p_stmt = null;
 
+    try{
+        //setup rs and p_stmt
+        p_stmt = conn.prepareStatement("SELECT AVG(audiofile.Duration)" + 
+        " FROM audiofile, album WHERE audiofile.AlbumID=album.AlbumID" +
+        " AND album.AlbumName='?';");
+
+        p_stmt.setString(1, alb);
+
+        rs = p_stmt.executeQuery();
+
+        if(rs.next()){}
+            System.out.println("The average track duration for album '" + alb +"' is: " + rs.getInt(1));
+        }else{
+            System.out.println("~~ERROR: Album '" + alb + "' returned no result ~~");
+        }
+
+
+    }catch(Exception exc){
+        exc.printStackTrace();
+    }finally{
+        try{
+            if(rs != null)
+                rs.close();
+            if(p_stmt != null)
+                p_stmt.close();
+        }catch(SQLException se){
+            se.printStackTrace();
+        }
+    }
+}
+
+
+/**
+ * Get total number of tracks in a user specified album
+ *
+ * @param alb
+ * @param conn
+ */
+public static void numTracksInAlbum(String alb, Connection conn){
+    ResultSet rs = null;
+    PreparedStatement p_stmt = null;
+
+    try{
+        //setup rs and p_stmt
+        p_stmt = conn.prepareStatement("SELECT COUNT(audiofile.TrackID)" + 
+        " FROM audiofile, album WHERE audiofile.AlbumID=album.AlbumID" +
+        " AND album.AlbumName='?';");
+
+        p_stmt.setString(1, alb);
+
+        rs = p_stmt.executeQuery();
+
+        if(rs.next()){}
+            System.out.println("Total track count for '" + alb +"' is: " + rs.getInt(1));
+        }else{
+            System.out.println("~~ERROR: Album '" + alb + "' returned no result ~~");
+        }
+
+    }catch(Exception exc){
+        exc.printStackTrace();
+    }finally{
+        try{
+            if(rs != null)
+                rs.close();
+            if(p_stmt != null)
+                p_stmt.close();
+        }catch(SQLException se){
+            se.printStackTrace();
+        }
+    }
+}
