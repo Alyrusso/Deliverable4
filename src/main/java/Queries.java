@@ -220,7 +220,7 @@ public class Queries {
 	 * @param alb
 	 * @param conn
 	 */
-	public void numTracksInAlbum(String alb, Connection conn){
+	public void numTracksInAlbum(String alb){
 		ResultSet rs = null;
 		PreparedStatement p_stmt = null;
 
