@@ -188,7 +188,7 @@ public class Queries {
         	" WHERE audiofile.TrackID=createdby.TrackID" +
         	" AND createdby.CreatorID=creator.CreatorID" +
         	" AND audiofile.ExplicitRating=?" +
-        	" ORDER BY creator.Name DESC;");
+        	" ORDER BY creator.Name ASC;");
         	p_stmt.setInt(1, exp_num);
         	rs = p_stmt.executeQuery();
 
