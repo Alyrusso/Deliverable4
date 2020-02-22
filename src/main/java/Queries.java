@@ -174,6 +174,54 @@ public class Queries {
 
 
 	/**
+ 	* Returns list of tracks with their artist based on user seeking explicit or not rating
+ 	* @param exp_num
+ 	*/
+	public static void getTracksByRating(int exp_num){
+    	ResultSet rs = null;
+    	PreparedStatement p_stmt = null;
+
+    	try{
+        	//setup rs and p_stmt
+        	p_stmt = conn.prepareStatement("SELECT audiofile.TrackID, audiofile.ReleaseName, audiofile.Duration, creator.Name AS Artist, creator.CreatorID" +
+        	" FROM audiofile, createdby, creator" +
+        	" WHERE audiofile.TrackID=createdby.TrackID" +
+        	" AND createdby.CreatorID=creator.CreatorID" +
+        	" AND audiofile.ExplicitRating=?" +
+        	" ORDER BY creator.Name DESC;");
+        	p_stmt.setInt(1, exp_num);
+        	rs = p_stmt.executeQuery();
+
+        	//check for empty/broken result
+        	if(rs.next() == null){
+            	System.out.println("Error: broken query or erroneus value passed!");
+        	}
+
+        	//produce result
+        	else{
+            	System.out.println("TrackID:\tReleaseName:\tDuration:\tArtist:\tCreatorID:");
+            	do{
+                	System.println(rs.getInt(1) + "\t" + rs.getString(2) + "\t" + rs.getInt(3) + "\t" + rs.getString(4) + "\t" + rs.getInt(5))
+
+            	}while(rs.next());
+
+        	}
+    	}catch(Exception exc){
+        	exc.printStackTrace();
+    	}finally{
+        	try{
+            	if(rs != null)
+                	rs.close();
+            	if(p_stmt != null)
+                	p_stmt.close();
+        	}catch(SQLException se){
+            	se.printStackTrace();
+        	}
+    	}
+	}
+
+
+	/**
 	 * Get the average track duration for all tracks in a user specified album
 	 *
 	 * @param alb
@@ -218,7 +266,6 @@ public class Queries {
 	 * Get total number of tracks in a user specified album
 	 *
 	 * @param alb
-	 * @param conn
 	 */
 	public void numTracksInAlbum(String alb){
 		ResultSet rs = null;
@@ -320,6 +367,7 @@ public class Queries {
 		}
 		return labelID;
 	}
+
 
 	/** Searches for a label by name and returns the labelID for the first one found.
 	 *
