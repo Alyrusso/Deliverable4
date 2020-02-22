@@ -280,7 +280,7 @@ public class Queries {
 
 			pStatement.execute();
 			conn.commit();
-
+			System.out.println("Successfully inserted new album.");
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return -1;
@@ -312,7 +312,7 @@ public class Queries {
 
 				pStatement.execute();
 				conn.commit();
-				return labelID;
+				System.out.println("Successfully inserted new record label.");
 			} catch (SQLException e) {
 				e.printStackTrace();
 				return -1;
