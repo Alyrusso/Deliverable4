@@ -1,5 +1,7 @@
 package main.java;
 
+import jdk.swing.interop.SwingInterOpUtils;
+
 import java.sql.*;
 import java.util.LinkedHashSet;
 import java.util.Scanner;
@@ -9,10 +11,7 @@ import java.util.Set;
  * Entry point and menu handler for group 17 music database application
  */
 public class Zene {
-    private static Connection conn;
-    private static Statement statement;
-    private static ResultSet rs;
-    private static PreparedStatement pStatement;
+    private static QueryHandler query;
 
     private static Set<String> menuOptions;
     private static Scanner in;
@@ -20,23 +19,22 @@ public class Zene {
     private static String url;
     private static String username;
     private static String password;
-    private static String driver;
 
     public static void main(String[] args) {
         //initialize member objects
         in = new Scanner(System.in);
+//        in.useDelimiter("\\n");
         verifyArgs(args);
         menuOptions = new LinkedHashSet<>();
 
         //add all the various menu options.
-        //use "\033[4m" to start underline. use "\033[0m" to return to normal
-        //remember to add a case to processOption() for the underlined char!
+        //remember to add a case to processOption() for the preceding char!
         menuOptions.add("a: artist search");
         menuOptions.add("t: title search");
         menuOptions.add("n: add new audio file");
         menuOptions.add("u: add new album");
 
-        connectDB();
+        query = new QueryHandler(connectDB());
 
         //menu loop
         char lastOption = '\0';
@@ -46,7 +44,7 @@ public class Zene {
             if (lastOption != 'q') processOption(lastOption);
         }
 
-        disconnectDB();
+        query.disconnect();
     }
 
     //switch for all the various options that may be called
@@ -58,7 +56,7 @@ public class Zene {
                 System.out.print("Enter an artist name to search for: " );
                 String artistName = in.next();
                 //call some kind of JDBC select query method here I guess, like:
-                //queryByArtist(artistName);
+                //query.queryByCreator(artistName);
                 break;
 
             //title search
@@ -66,12 +64,28 @@ public class Zene {
                 System.out.print("Enter a title to search for: " );
                 String titleName = in.next();
                 //call some kind of JDBC select query method here I guess, like:
-                //queryByTitle(titleName);
+                //query.queryByTitle(titleName);
                 break;
 
             //add new album
             case 'u':
-                //todo: implement u
+                System.out.print("Enter the name of the album to insert: ");
+                in.nextLine();
+                String albumName = in.nextLine();
+                String label = null, date = null;
+                System.out.print("Enter y to add a release date, or anything else to leave null: ");
+                char cont = in.nextLine().toLowerCase().charAt(0);
+                if (cont == 'y') {
+                    System.out.print("Enter release date as yyyymmdd (eg. 20190523): ");
+                    date = in.nextLine();
+                }
+                System.out.print("Enter y to add a record label, or anything else to leave null: ");
+                cont = in.nextLine().toLowerCase().charAt(0);
+                if (cont == 'y') {
+                    System.out.print("Enter the name of the record label: ");
+                    label = in.nextLine();
+                }
+                query.insertAlbum(albumName, date, label);
                 break;
 
             //add new audio file
@@ -95,6 +109,7 @@ public class Zene {
     //called from main, verifies args are proper
     private static void verifyArgs(String[] args) {
         //check for sufficient args, prompt for user input otherwise
+        String driver;
         if (args.length < 4) {
             System.out.println("Please enter the database URL (e.g. jdbc:mysql://localhost:3306/world)");
             url = in.next();
@@ -114,37 +129,26 @@ public class Zene {
         //check for proper URI protocol
         if (!url.toLowerCase().contains("jdbc:"))
             throw new IllegalArgumentException("<url> must start with \"jdbc:\"");
-    }
 
-    //disconnects all DB resources if initialized then exits the program
-    private static void disconnectDB() {
-        System.out.print("closing db connection...");
-        try {
-            //close all DB resources
-            if (rs != null) rs.close();
-            if (pStatement != null) pStatement.close();
-            if (statement != null) statement.close();
-            if (conn != null) conn.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        System.out.println("closed!");
-        System.exit(0);
-    }
-
-    private static void connectDB() {
-        System.out.print("connecting to db...");
-        try {
-            Class.forName(driver);
-            conn = DriverManager.getConnection(url, username, password);
-            //conn.setAutoCommit(false); //do we want autocommit on/off?
-        } catch (ClassNotFoundException e) {
+        //attempt to load driver class for jdbc
+        try {Class.forName(driver);}
+        catch (ClassNotFoundException e){
             System.out.println("Error: driver not found");
-            disconnectDB();
+            System.exit(1);
+        }
+    }
+
+    //establishes connection to database and initializes query handler
+    private static Connection connectDB() {
+        System.out.print("connecting to db...");
+        Connection conn = null;
+        try {
+            conn = DriverManager.getConnection(url, username, password);
+            conn.setAutoCommit(false); //do we want autocommit on/off?
         } catch (SQLException e) {
-            System.out.println("Error: could not connect to database. Wrong url or login info?");
-            disconnectDB();
+            System.out.println("\nError: could not connect to database. Wrong url or login info?");
         }
         System.out.println("connected!");
+        return conn;
     }
 }
