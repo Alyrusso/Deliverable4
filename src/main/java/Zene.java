@@ -1,9 +1,8 @@
 package main.java;
 
-import jdk.swing.interop.SwingInterOpUtils;
-
 import java.sql.*;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -11,9 +10,8 @@ import java.util.Set;
  * Entry point and menu handler for group 17 music database application
  */
 public class Zene {
-    private static QueryHandler query;
+    private static Queries query;
 
-    private static Set<String> menuOptions;
     private static Scanner in;
 
     private static String url;
@@ -25,23 +23,51 @@ public class Zene {
         in = new Scanner(System.in);
 //        in.useDelimiter("\\n");
         verifyArgs(args);
-        menuOptions = new LinkedHashSet<>();
+        Set<String> menuOptions = new LinkedHashSet<>();
+        Set<String> insertOptions = new LinkedHashSet<>();
+        Set<String> deleteOptions = new LinkedHashSet<>();
+        Set<String> searchOptions = new LinkedHashSet<>();
 
         //add all the various menu options.
         //remember to add a case to processOption() for the preceding char!
-        menuOptions.add("a: artist search");
-        menuOptions.add("t: title search");
-        menuOptions.add("n: add new audio file");
-        menuOptions.add("u: add new album");
+        menuOptions.add("s: search the database");
+        menuOptions.add("i: insert items into the database");
+        menuOptions.add("d: delete items from the database");
 
-        query = new QueryHandler(connectDB());
+        insertOptions.add("n: add new audio file");
+        insertOptions.add("u: add new album");
+        insertOptions.add("b: back to main menu");
+
+        searchOptions.add("c: creator search");
+        searchOptions.add("t: title search");
+        searchOptions.add("l: album search");
+        searchOptions.add("b: back to main menu");
+
+        query = new Queries(connectDB());
 
         //menu loop
         char lastOption = '\0';
         while (lastOption != 'q') {
-            printOptions();
+            printMenu(menuOptions);
             lastOption = Character.toLowerCase(in.next().charAt(0));
-            if (lastOption != 'q') processOption(lastOption);
+            switch (lastOption) {
+                case 's':
+                    printMenu(searchOptions);
+                    lastOption = Character.toLowerCase(in.next().charAt(0));
+                    break;
+                case 'i':
+                    printMenu(insertOptions);
+                    lastOption = Character.toLowerCase(in.next().charAt(0));
+                    break;
+                case 'd':
+                    printMenu(deleteOptions);
+                    lastOption = Character.toLowerCase(in.next().charAt(0));
+                    break;
+                default:
+                    System.out.println("Error: unrecognized option (" + lastOption + "). Try again.");
+                    break;
+            }
+            if (lastOption != 'q' && lastOption != 'b') processOption(lastOption);
         }
 
         query.disconnect();
@@ -50,28 +76,34 @@ public class Zene {
     //switch for all the various options that may be called
     //prompt for any extra information as needed, then call some jdbc handler method
     private static void processOption(char lastOption) {
+        String albumName, creatorName, titleName;
         switch (lastOption) {
             //artist search
-            case 'a':
-                System.out.print("Enter an artist name to search for: " );
-                String artistName = in.next();
-                //call some kind of JDBC select query method here I guess, like:
-                //query.queryByCreator(artistName);
+            case 'c':
+                System.out.print("Enter a creator name to search for: " );
+                creatorName = in.next();
+                query.queryByCreator(creatorName);
                 break;
 
             //title search
             case 't':
                 System.out.print("Enter a title to search for: " );
-                String titleName = in.next();
-                //call some kind of JDBC select query method here I guess, like:
-                //query.queryByTitle(titleName);
+                titleName = in.next();
+                query.queryByAudioTitle(titleName);
+                break;
+
+            //album search
+            case 'l':
+                System.out.print("Enter an album name to serach for: ");
+                albumName = in.next();
+                query.queryByAlbumTitle(albumName);
                 break;
 
             //add new album
             case 'u':
                 System.out.print("Enter the name of the album to insert: ");
                 in.nextLine();
-                String albumName = in.nextLine();
+                albumName = in.nextLine();
                 String label = null, date = null;
                 System.out.print("Enter y to add a release date, or anything else to leave null: ");
                 char cont = in.nextLine().toLowerCase().charAt(0);
@@ -100,8 +132,8 @@ public class Zene {
     }
 
     //helper method for printing all menu options
-    private static void printOptions() {
-        for (String s: menuOptions)
+    private static void printMenu(Set<String> menu) {
+        for (String s: menu)
             System.out.println("\t" + s);
         System.out.print("Select menu option by preceding character (or q to exit): ");
     }
