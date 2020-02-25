@@ -220,6 +220,55 @@ public class Queries {
     	}
 	}
 
+	/**
+	 * Gets lists of songs based on country.  Includes artist information.
+     *
+	 * @param country - country name
+	 */
+	public static void getTracksByCountry(String country){
+        ResultSet rs = null;
+        PreparedStatement p_stmt = null;
+
+        try{
+            //setup rs and p_stmt
+            p_stmt = conn.prepareStatement(
+                "SELECT audiofile.TrackID, audiofile.ReleaseName, audiofile.Duration, creator.Name AS Artist, creator.CreatorID "
+                + "FROM audiofile, createdby, creator, country "
+                + "WHERE audiofile.TrackID=createdby.TrackID "
+                + "AND createdby.CreatorID=creator.CreatorID "
+                + "AND country.CountryID=audiofile.CountryID "
+                + "AND country.Name="?";");
+            p_stmt.setString(1, country);
+            rs = p_stmt.executeQuery();
+
+            //check for empty/broken result
+            if(rs.next() == null){
+                System.out.println("Error: broken query or erroneus value passed!");
+            }
+
+            //produce result
+            else{
+                System.out.println("TrackID:\tReleaseName:\tDuration:\tArtist:\tCreatorID:");
+                do{
+                    System.println(rs.getInt(1) + "\t" + rs.getString(2) + "\t" + rs.getInt(3) + "\t" + rs.getString(4) + "\t" + rs.getInt(5))
+
+                }while(rs.next());
+
+            }
+        }catch(Exception exc){
+            exc.printStackTrace();
+        }finally{
+            try{
+                if(rs != null)
+                    rs.close();
+                if(p_stmt != null)
+                    p_stmt.close();
+            }catch(SQLException se){
+                se.printStackTrace();
+            }
+        }
+    }
+
 
 	/**
 	 * Get the average track duration for all tracks in a user specified album
@@ -395,6 +444,82 @@ public class Queries {
 		}
 		return 0;
 	}
+
+
+	/**
+	 * Insert a new audiofile into the db, returns ID if it already exists.
+	 *
+	 * @param name
+	 * @param rating
+	 * @param duration
+	 * @param countryID
+	 * @return trackID
+	 */
+	public int insertAudiofile(String name, int rating, int duration, int countryID, int albID){
+    	int trackID = getTrackID(name);
+    	if(trackID == 0){
+        	try{
+            	p_stmt = conn.prepareStatement("INSERT INTO adb.audiofile " 
+            	+ "(TrackID, ReleaseName, ExplicitRating, Duration, CountryID, AlbumID)"
+            	+ " VALUES (?, ?, ?, ?, ?, ?,);");
+            	trackId = getID(name);
+
+            	//set vals
+            	p_stmt.setInt(1, trackID);
+            	p_stmt.setString(2, name);
+            	if(rating != null)
+                	p_stmt.setInt(3, rating);
+            	else
+                	p_stmt.setInt(3, 0);
+            	if(duration != null)
+                	p_stmt.setInt(4, duration);
+            	else
+                	p_stmt.setInt(4, 999); //we can choose a different default here, but 0 could be bad
+            	if(countryID != null)
+                	p_stmt.setInt(5, countryID);
+            	else
+                	p_stmt.setInt(5, 999);
+            	p_stmt.setInt(6, albID);
+
+            	//exc
+            	p_stmt.execute();
+            	conn.commit();
+            	System.out.println("New Track " + name + " added successfully.");
+
+        	}catch(SQLException sexc){
+            	sexc.printStackTrace();
+            	return -1;
+    		}
+    	}
+    	return trackID;
+	}
+
+	/**
+ 	* Helper method that returns a trackID if it exists or 0 if it does not.
+ 	* 
+ 	* @param name
+ 	* @return trackID
+ 	*/
+	public int getTrackID(String name){
+    	try {
+			pStatement = conn.prepareStatement(
+			  "SELECT TrackID "
+			+ "FROM audiofile " 
+			+ "WHERE audiofile.ReleaseName=?;"
+			pStatement.setString(1, name);
+			ResultSet rs = pStatement.executeQuery();
+			if (rs.next()) {
+				int trackID = rs.getInt("TrackID");
+				rs.close();
+				return trackID;
+			}
+		} catch (SQLException exc) {
+			exc.printStackTrace();
+			return -1;
+		}
+		return 0;
+	}
+
 
 	//private helper method for returning a random ID#
 	private int getID(String s) {
