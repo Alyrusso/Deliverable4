@@ -145,7 +145,7 @@ public class Queries {
 		try {
 			//create statement
 			pstmt = conn.prepareStatement(
-					"SELECT ReleaseName AS Title, sec_to_time(Duration) AS Duration, ExplicitRating AS Explicit"
+					"SELECT ReleaseName AS Title, trim(LEADING ':' FROM trim(LEADING '0' FROM sec_to_time(Duration))) AS Duration, ExplicitRating AS Explicit"
 					+ " FROM audiofile"
 					+ " WHERE AlbumID = ?"
 			);
@@ -153,16 +153,15 @@ public class Queries {
 			ResultSet rs = pstmt.executeQuery();
 
 			if(!rs.next()) {
-				System.out.println ("\tNo tracks found for album ID: " + albumID);
+				System.out.println ("\tNo tracks found for album ID: " + albumID + "\n");
 			} else {
-				System.out.printf("\t%-20s   %5s   %s\n", "Title", "Drtn.", "Rating");
+				System.out.printf("\t%-20s   %8s   %s\n", "Title", "Duration", "Rating");
 				System.out.println("\t---------------------------------------");
 				do {
 					String rating = (rs.getInt("Explicit") == 0) ? "Clean" : "Explicit"; //convert 0/1 to string
-					String d = rs.getString("Duration");
-					String duration = d.substring(d.length() - 5);
+					String duration = rs.getString("Duration");
 					String title = abbreviate(rs.getString("Title"), 20);
-					System.out.printf("\t%-20s | %5s | %s\n", title, duration, rating);
+					System.out.printf("\t%-20s | %8s | %s\n", title, duration, rating);
 				} while (rs.next());
 				System.out.println();
 			}
@@ -204,6 +203,47 @@ public class Queries {
 				System.out.println("From Genre: " + gnr + "\nAudio File Name:\tCreator:\tDuration:\tAlbum Name:\tReleaseDate:");
 				do {
 					System.out.println(rs.getString(1)+ "\t" +rs.getString(2) + "\t" + rs.getString(3) + "\t" + rs.getString(4));
+				} while(rs.next());
+			}
+		}
+		catch (Exception exc){
+			exc.printStackTrace();
+		}
+	}
+
+	public void queryByMediaType(String mediaType) {
+		try{
+			//create statement
+			PreparedStatement pstmt = conn.prepareStatement(
+					"SELECT a.AlbumID, AlbumName, date(ReleaseDate) AS ReleaseDate, r.Name AS Label, trim(LEADING ':' FROM trim(LEADING '0' FROM sec_to_time(SUM(Duration)))) AS Duration" +
+					" FROM album a\n" +
+					" LEFT JOIN recordlabel r" +
+					" ON a.LabelID = r.LabelID" +
+					" LEFT JOIN audiofile af" +
+					" ON a.AlbumID = af.AlbumID" +
+					" WHERE MediaType = ?" +
+					" GROUP BY a.AlbumID;");
+			pstmt.setString(1, mediaType);
+			//make query
+			ResultSet rs = pstmt.executeQuery();
+			//check if results were found
+			if(rs.next() == false) {
+				System.out.println ("No results found for media type: " + mediaType);
+			} else {
+				//display results
+				//System.out.printf("%8s   %-20s   %-10s   %-6s   %-20s\n", "Duration", "Album Name", "Released", "Media Type", "Label Name");
+				//print album info
+				do {
+					System.out.printf("%-5s: %8s | %s | %s | %s\n",
+							"Album",
+							rs.getString("AlbumName"),
+							nullable(rs.getString("Duration")),
+							nullable(rs.getString("Label")),
+							nullable(rs.getString("ReleaseDate"))
+					);
+
+					//print tracks for each album, if any are present
+					queryTracksByAlbumID(rs.getInt("AlbumID"));
 				} while(rs.next());
 			}
 		}

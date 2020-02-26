@@ -44,6 +44,7 @@ public class Zene {
         searchOptions.add("a: search by album");
         searchOptions.add("g: search by genre");
         searchOptions.add("l: search by label");
+        searchOptions.add("y: list all albums by media type");
         searchOptions.add("e: list all explicit tracks");
         searchOptions.add("b: back to main menu");
 
@@ -115,6 +116,11 @@ public class Zene {
             case 'l':
                 System.out.print("Enter a label name to search for: ");
                 query.getTracksLabel(in.nextLine());
+                break;
+
+            case 'y':
+                System.out.print("Enter a media type to list: ");
+                query.queryByMediaType(in.nextLine());
                 break;
 
             case 'e':
