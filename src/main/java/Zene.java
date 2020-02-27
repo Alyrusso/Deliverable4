@@ -124,7 +124,13 @@ public class Zene {
                 break;
 
             case 'e':
-                //todo: implement e
+                System.out.print("Enter 'mature' for explicit tracks only or 'everyone' for censored track list: ");
+                String dec = in.nextLine();
+                if(dec.compareTo("mature") == 0 || dec.compareTo("Mature") == 0 ){
+                    query.getTracksByRating(1);
+                }else{
+                    query.getTracksByRating(0);
+                }
                 break;
         }
     }
