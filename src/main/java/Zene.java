@@ -244,14 +244,14 @@ public class Zene {
         //check for sufficient args, prompt for user input otherwise
         String driver;
         if (args.length < 4) {
-            System.out.println("Please enter the database URL (e.g. jdbc:mysql://localhost:3306/world)");
-            url = in.next();
-            System.out.println("Please enter your database username: ");
-            username = in.next();
-            System.out.println("Please enter your database password: ");
-            password = in.next();
-            System.out.println("Please enter the driver you wish to use (e.g. com.mysql.cj.jdbc.Driver)");
-            driver = in.next();
+            System.out.print("Please enter the database URL (e.g. jdbc:mysql://localhost:3306/world): ");
+            url = in.nextLine();
+            System.out.print("Please enter your database username: ");
+            username = in.nextLine();
+            System.out.print("Please enter your database password: ");
+            password = in.nextLine();
+            System.out.print("Please enter the driver you wish to use (e.g. com.mysql.cj.jdbc.Driver): ");
+            driver = in.nextLine();
         } else {
             url = args[0];
             username = args[1];
