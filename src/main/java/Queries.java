@@ -47,16 +47,16 @@ public class Queries {
 					String duration = rs.getString("Duration");
 					String aName = abbreviate(rs.getString("AlbumName"), 20);
 					String releaseDate = abbreviate(nullable(rs.getString("ReleaseDate")), 4);
-					System.out.printf("%4s | %-20s | %5s | %-64s\n", releaseDate, aName, duration, rs.getString("ReleaseName"));
+					System.out.printf("%4s │ %-20s │ %5s │ %-64s\n", releaseDate, aName, duration, rs.getString("ReleaseName"));
 				}
 				System.out.println(); //newline to separate results from next menu
 			}
 		}
 		catch (Exception exc){
-			exc.printStackTrace();
+			System.out.println("Error when searching for artist \"" + ctr + "\": " + exc.getMessage());
 		}
 	}
-	
+
 	/**
 	 * querybyAudioTitle take in track name and prints track name, duration of track, creator name, album name, and release date
 	 * @param title - title of audio file queried
@@ -82,29 +82,28 @@ public class Queries {
 			//display results
 			else {
 				System.out.printf("%-22s   %-16s   %-3s   %-18s   %-8s   %s\n", "Audio File Name:", "Creator:", "Drtn.", "Album Name:", "Explicit:", "Release Date:");
-				//System.out.println("Audio File Name:\tCreator:\tDuration:\tAlbum Name:\tExplicit:\tReleaseDate:");
 				System.out.println("\t---------------------------------------");
 				do {
 					String track = abbreviate(rs.getString("ReleaseName"), 22);
 					String rating = (rs.getInt("ExplicitRating") == 0) ? "Clean" : "Explicit";
-					System.out.printf("%-22s | %-18s | %-3s | %-20s | %-9s | %s\n", track, rs.getString(2), rs.getString(3), rs.getString(4), rating, rs.getString(5));
+					System.out.printf("%-22s │ %-18s │ %-3s │ %-20s │ %-9s │ %s\n", track, rs.getString(2), rs.getString(3), rs.getString(4), rating, rs.getString(5));
 				} while(rs.next());
 			}
 		}
 		catch (Exception exc){
-			exc.printStackTrace();
+			System.out.println("Error when searching for track \"" + title + "\": " + exc.getMessage());
 		}
 	}
-	
+
 	/**
-	 * queryByAlbumTitle prints the album name, creator name, total duration of album, release date, label if applicable and 
+	 * queryByAlbumTitle prints the album name, creator name, total duration of album, release date, label if applicable and
 	 * country if applicable. It then prints track info for tracks in album
 	 * @param title - title of album queried
 	 */
 	public void queryByAlbumTitle(String title) {
 		try{
 			//create statement
-			String stmt = "SELECT album.AlbumID, AlbumName, MediaType, date(ReleaseDate) AS ReleaseDate, recordlabel.Name AS Label, sec_to_time(SUM(Duration)) AS Duration" +
+			String stmt = "SELECT album.AlbumID, AlbumName, MediaType, date(ReleaseDate) AS ReleaseDate, recordlabel.Name AS Label, trim(LEADING ':' FROM trim(LEADING '0' FROM sec_to_time(SUM(Duration)))) AS Duration, count(audiofile.TrackID) AS Count" +
 					" FROM album" +
 					" LEFT JOIN recordlabel" +
 					" ON album.LabelID = recordlabel.LabelID" +
@@ -122,36 +121,42 @@ public class Queries {
 				System.out.println ("No results found for " + title);
 			} else {
 				//display results
-				//System.out.printf("%8s   %-20s   %-10s   %-6s   %-20s\n", "Duration", "Album Name", "Released", "Media Type", "Label Name");
 				//print album info
 				do {
-					System.out.printf("%-5s | %8s | %8s | %s | %s\n",
-							rs.getString("MediaType"),
+					int count = rs.getInt("Count");
+					String boxString = "  ";
+					if (count > 0) boxString = "┌─";
+					System.out.printf("Album: "+ boxString +"%-20s │ %7s │ %8s │ %s\n",
 							rs.getString("AlbumName"),
 							nullable(rs.getString("Duration")),
+							rs.getString("MediaType"),
 							nullable(rs.getString("Label")),
 							nullable(rs.getString("ReleaseDate"))
 					);
 
 					//print tracks for each album, if any are present
-					queryTracksByAlbumID(rs.getInt("AlbumID"));
+					queryTracksByAlbumID(rs.getInt("AlbumID"), count);
 				} while(rs.next());
 			}
 		}
 		catch (Exception exc){
-			exc.printStackTrace();
+			System.out.println("Error when searching for album \"" + title + "\": " + exc.getMessage());
 		}
 	}
 
 	//called from any query that needs to print track info per album.
-	private void queryTracksByAlbumID(int albumID) {
+	private void queryTracksByAlbumID(int albumID, int count) {
 		PreparedStatement pstmt = null;
 		try {
 			//create statement
 			pstmt = conn.prepareStatement(
-					"SELECT ReleaseName AS Title, trim(LEADING ':' FROM trim(LEADING '0' FROM sec_to_time(Duration))) AS Duration, ExplicitRating AS Explicit"
-					+ " FROM audiofile"
-					+ " WHERE AlbumID = ?"
+					"SELECT ReleaseName AS Title, trim(LEADING ':' FROM trim(LEADING '0' FROM sec_to_time(Duration))) AS Duration, ExplicitRating AS Explicit, creator.Name AS Creator" +
+					" FROM audiofile" +
+					" LEFT JOIN createdby" +
+					" ON createdby.TrackID = audiofile.TrackID" +
+					" LEFT JOIN creator" +
+					" ON createdby.CreatorID = creator.CreatorID" +
+					" WHERE AlbumID = ?;"
 			);
 			pstmt.setInt(1, albumID);
 			ResultSet rs = pstmt.executeQuery();
@@ -159,18 +164,22 @@ public class Queries {
 			if(!rs.next()) {
 				System.out.println ("\tNo tracks found for album ID: " + albumID + "\n");
 			} else {
-				System.out.printf("\t%-20s   %8s   %s\n", "Title", "Duration", "Rating");
-				System.out.println("\t---------------------------------------");
+				String boxShape = "├─";
+				System.out.printf("       │ %-20s   %7s   %8s   %s\n", "      -Title-", "-Drtn-", "-Rating-", "-Creator-");
+				//System.out.println("     ---------------------------------------");
+				int c = 0;
 				do {
+					if (++c == count) boxShape = "└─";
+					String creator = abbreviate(nullable(rs.getString("Creator")), 20);
 					String rating = (rs.getInt("Explicit") == 0) ? "Clean" : "Explicit"; //convert 0/1 to string
 					String duration = rs.getString("Duration");
 					String title = abbreviate(rs.getString("Title"), 20);
-					System.out.printf("\t%-20s | %8s | %s\n", title, duration, rating);
+					System.out.printf("       " + boxShape + "%-20s │ %7s │ %8s │ %-20s\n", title, duration, rating, creator);
 				} while (rs.next());
 				System.out.println();
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			System.out.println("Error when searching for albumID \"" + albumID + "\": " + e.getMessage());
 		} finally {
 			if (pstmt != null) {
 				try {
@@ -181,7 +190,7 @@ public class Queries {
 			}
 		}
 	}
-	
+
 	public void queryByGenre(String gnr) {
 		try{
 			//create statement
@@ -197,7 +206,7 @@ public class Queries {
 			PreparedStatement pstmt = conn.prepareStatement(stmt);
 			pstmt.setString(1, gnr);
 			//make query
-			ResultSet rs = pstmt.executeQuery();				
+			ResultSet rs = pstmt.executeQuery();
 			//check if results were found
 			if(rs.next() == false) {
 				System.out.println ("No results found for " + gnr);
@@ -211,12 +220,12 @@ public class Queries {
 				do {
 					String track = abbreviate(rs.getString("ReleaseName"), 23);
 					System.out.printf("%-23s",track);
-					System.out.printf("| %s | %-3s | %s | %s\n" , rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6));
+					System.out.printf("│ %s │ %-3s │ %s │ %s\n" , rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6));
 				} while(rs.next());
 			}
 		}
 		catch (Exception exc){
-			exc.printStackTrace();
+			System.out.println("Error when searching for genre \"" + gnr + "\": " + exc.getMessage());
 		}
 	}
 
@@ -224,8 +233,8 @@ public class Queries {
 		try{
 			//create statement
 			PreparedStatement pstmt = conn.prepareStatement(
-					"SELECT a.AlbumID, AlbumName, date(ReleaseDate) AS ReleaseDate, r.Name AS Label, trim(LEADING ':' FROM trim(LEADING '0' FROM sec_to_time(SUM(Duration)))) AS Duration" +
-					" FROM album a\n" +
+					"SELECT a.AlbumID, AlbumName, date(ReleaseDate) AS ReleaseDate, r.Name AS Label, trim(LEADING ':' FROM trim(LEADING '0' FROM sec_to_time(SUM(Duration)))) AS Duration, count(af.TrackID) AS Count" +
+					" FROM album a " +
 					" LEFT JOIN recordlabel r" +
 					" ON a.LabelID = r.LabelID" +
 					" LEFT JOIN audiofile af" +
@@ -240,10 +249,12 @@ public class Queries {
 				System.out.println ("No results found for media type: " + mediaType);
 			} else {
 				//display results
-				//System.out.printf("%8s   %-20s   %-10s   %-6s   %-20s\n", "Duration", "Album Name", "Released", "Media Type", "Label Name");
 				//print album info
 				do {
-					System.out.printf("%-5s: %8s | %s | %s | %s\n",
+					int count = rs.getInt("Count");
+					String boxString = "  ";
+					if (count > 0) boxString = "┌─";
+					System.out.printf("%-5s: "+ boxString +"%-20s │ %7s │ %s │ %s\n",
 							"Album",
 							rs.getString("AlbumName"),
 							nullable(rs.getString("Duration")),
@@ -252,12 +263,12 @@ public class Queries {
 					);
 
 					//print tracks for each album, if any are present
-					queryTracksByAlbumID(rs.getInt("AlbumID"));
+					queryTracksByAlbumID(rs.getInt("AlbumID"), count);
 				} while(rs.next());
 			}
 		}
 		catch (Exception exc){
-			exc.printStackTrace();
+			System.out.println("Error when searching for media type \"" + mediaType + "\": " + exc.getMessage());
 		}
 	}
 
@@ -296,7 +307,7 @@ public class Queries {
 
         	}
     	}catch(Exception exc){
-        	exc.printStackTrace();
+			System.out.println("Error when searching for rating \"" + exp_num + "\": " + exc.getMessage());
     	}finally{
         	try{
             	if(rs != null)
@@ -333,7 +344,7 @@ public class Queries {
 
             //check for empty/broken result
             if(rs.next() == false){
-                System.out.println("Error: broken query or erroneous value passed!");
+                System.out.println("No results found for country " + country);
             }
 
             //produce result
@@ -346,13 +357,13 @@ public class Queries {
 					String d = rs.getString("Duration");
 					String a = abbreviate(rs.getString ("Artist"), 19);
 					String aID = rs.getString("CreatorID");
-					System.out.printf("%15s | %-41s | %5s | %-20s | %15s\n", tID, t, d, a, aID);
+					System.out.printf("%15s │ %-41s │ %5s │ %-20s │ %15s\n", tID, t, d, a, aID);
 
                 }while(rs.next());
 
             }
         }catch(Exception exc){
-            exc.printStackTrace();
+			System.out.println("Error when searching for country \"" + country + "\": " + exc.getMessage());
         }finally{
             try{
                 if(rs != null)
@@ -378,32 +389,40 @@ public class Queries {
         try{
             //setup rs and p_stmt
             p_stmt = conn.prepareStatement(
-                "SELECT audiofile.TrackID, audiofile.ReleaseName, audiofile.Duration, creator.Name AS Artist, creator.CreatorID "
-                + "FROM audiofile, createdby, creator, recordlabel, album "
-                + "WHERE audiofile.TrackID=createdby.TrackID "
-                + "AND createdby.CreatorID=creator.CreatorID "
-                + "AND album.AlbumID=audiofile.AlbumID "
-                + "AND recordlabel.LabelID=album.LabelID "
-                + "AND recordlabel.Name=?;");
+                "SELECT AlbumName, date(ReleaseDate) AS ReleaseDate,trim(LEADING ':' FROM (trim(LEADING '0' FROM (sec_to_time(SUM(Duration)))))) AS Duration, MediaType, album.AlbumID AS AlbumID, recordlabel.Name AS Label, count(audiofile.TrackID) AS Count" +
+				" FROM recordlabel, album, audiofile" +
+				" WHERE recordlabel.Name = ?" +
+				" AND recordlabel.LabelID = album.LabelID" +
+				" AND album.AlbumID = audiofile.AlbumID" +
+				" GROUP BY album.AlbumID;");
             p_stmt.setString(1, label_name);
             rs = p_stmt.executeQuery();
 
             //check for empty/broken result
             if(rs.next() == false){
-                System.out.println("Error: broken query or erroneus value passed!");
+                System.out.println("No results found for label " + label_name);
             }
 
             //produce result
             else{
-                System.out.println("TrackID:\tReleaseName:\tDuration:\tArtist:\tCreatorID:");
+               // System.out.println("TrackID:\tReleaseName:\tDuration:\tArtist:\tCreatorID:");
                 do{
-                    System.out.println(rs.getInt(1) + "\t" + rs.getString(2) + "\t" + rs.getInt(3) + "\t" + rs.getString(4) + "\t" + rs.getInt(5));
+					System.out.printf("Album: ┌─%-20s   %7s   %8s   %s   %s\n",
+							rs.getString("AlbumName"),
+							nullable(rs.getString("Duration")),
+							rs.getString("MediaType"),
+							nullable(rs.getString("Label")),
+							nullable(rs.getString("ReleaseDate"))
+					);
 
+					//print tracks for each album, if any are present
+					queryTracksByAlbumID(rs.getInt("AlbumID"), rs.getInt("Count"));
                 }while(rs.next());
 
             }
         }catch(Exception exc){
-            exc.printStackTrace();
+			//System.out.println("Error when searching for label \"" + label_name + "\": " + exc.getMessage());
+			exc.printStackTrace();
         }finally{
             try{
                 if(rs != null)
@@ -526,7 +545,7 @@ public class Queries {
 			conn.commit();
 			System.out.println("Successfully inserted new album with ID: " + albumID);
 		} catch (SQLException e) {
-			e.printStackTrace();
+			System.out.println("Error when inserting album \"" + albumName + "\": " + e.getMessage());
 			return -1;
 		}
 		return albumID;
@@ -558,7 +577,7 @@ public class Queries {
 				conn.commit();
 				System.out.println("Successfully inserted new record label with ID: " + labelID);
 			} catch (SQLException e) {
-				e.printStackTrace();
+				System.out.println("Error when inserting label \"" + label + "\": " + e.getMessage());
 				return -1;
 			}
 		}
@@ -630,7 +649,6 @@ public class Queries {
 
         } catch(SQLException sexc){
 			System.out.println("Error inserting track: " + sexc.getMessage());
-            //sexc.printStackTrace();
             return -1;
     	}
     	return trackID;
@@ -654,7 +672,7 @@ public class Queries {
 				conn.commit();
 				System.out.println("Successfully inserted new creator with ID: " + creatorID);
 			} catch (SQLException e) {
-				e.printStackTrace();
+				System.out.println("Error when inserting creator \"" + name + "\": " + e.getMessage());
 				return -1;
 			}
 		return creatorID;
@@ -682,7 +700,7 @@ public class Queries {
 		        	System.out.println("Genre already exists in the database.");
 		    }
 			catch (SQLException e) {
-				e.printStackTrace();
+				System.out.println("Error when inserting genre \"" + genreID + "\": " + e.getMessage());
 			}
 	}
 
@@ -694,7 +712,9 @@ public class Queries {
 
 	//private helper method for abbreviating strings
 	private String abbreviate(String s, int len) {
-		return s.substring(0, Math.min(s.length(), len));
+		String result = s.substring(0, Math.min(s.length(), len));
+		if (s.length() > len && len > 4) result = result.substring(0, len - 3) + "...";
+		return result;
 	}
 
 	//private helper method for casting null strings as blank
