@@ -44,8 +44,9 @@ public class Zene {
         searchOptions.add("a: search by album");
         searchOptions.add("g: search by genre");
         searchOptions.add("l: search by label");
+        searchOptions.add("n: search by country");
         searchOptions.add("y: list all albums by media type");
-        searchOptions.add("e: list all explicit tracks");
+        searchOptions.add("e: list tracks by explicit rating");
         searchOptions.add("b: back to main menu");
 
         query = new Queries(connectDB());
@@ -121,6 +122,11 @@ public class Zene {
             case 'y':
                 System.out.print("Enter a media type to list: ");
                 query.queryByMediaType(in.nextLine());
+                break;
+
+            case 'n':
+                System.out.print("Enter country name: ");
+                query.getTracksByCountry(in.nextLine());
                 break;
 
             case 'e':
