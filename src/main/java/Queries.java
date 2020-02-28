@@ -64,7 +64,7 @@ public class Queries {
 	public void queryByAudioTitle(String title) {
 		try{
 			//create statement
-			String stmt = "SELECT ReleaseName, Duration, creator.Name, AlbumName, ReleaseDate, ExplicitRating "
+			String stmt = "SELECT ReleaseName, creator.Name, Duration, AlbumName, ReleaseDate, ExplicitRating "
 					+ "FROM album, audiofile, createdby, creator "
 					+ "WHERE album.AlbumID = audioFile.AlbumID "
 					+ "AND audiofile.TrackID = createdby.TrackID "
@@ -81,9 +81,13 @@ public class Queries {
 			}
 			//display results
 			else {
-				System.out.println("Audio File Name:\tDuration:\tCreator:\tAlbum Name:\tReleaseDate:");
+				System.out.printf("%-22s   %-16s   %-3s   %-18s   %-8s   %s\n", "Audio File Name:", "Creator:", "Drtn.", "Album Name:", "Explicit:", "Release Date:");
+				//System.out.println("Audio File Name:\tCreator:\tDuration:\tAlbum Name:\tExplicit:\tReleaseDate:");
+				System.out.println("\t---------------------------------------");
 				do {
-					System.out.println(rs.getString(1)+ "\t" +rs.getString(2) + "\t" + rs.getString(3) + "\t" + rs.getString(4) + "\t" + rs.getString(5));
+					String track = abbreviate(rs.getString("ReleaseName"), 22);
+					String rating = (rs.getInt("ExplicitRating") == 0) ? "Clean" : "Explicit";
+					System.out.printf("%-22s | %-18s | %-3s | %-20s | %-9s | %s\n", track, rs.getString(2), rs.getString(3), rs.getString(4), rating, rs.getString(5));
 				} while(rs.next());
 			}
 		}
@@ -181,7 +185,7 @@ public class Queries {
 	public void queryByGenre(String gnr) {
 		try{
 			//create statement
-			String stmt = "SELECT ReleaseName, creator.Name,  AlbumName, ReleaseDate "
+			String stmt = "SELECT Description, ReleaseName, creator.Name,  Duration, AlbumName, ReleaseDate "
 					+ "FROM album, audiofile, createdby, creator, ingenre, genre "
 					+ "WHERE album.AlbumID = audioFile.AlbumID "
 					+ "AND audiofile.TrackID = createdby.TrackID "
@@ -193,16 +197,21 @@ public class Queries {
 			PreparedStatement pstmt = conn.prepareStatement(stmt);
 			pstmt.setString(1, gnr);
 			//make query
-			ResultSet rs = pstmt.executeQuery();
+			ResultSet rs = pstmt.executeQuery();				
 			//check if results were found
 			if(rs.next() == false) {
 				System.out.println ("No results found for " + gnr);
 			}
 			//display results
 			else {
-				System.out.println("From Genre: " + gnr + "\nAudio File Name:\tCreator:\tDuration:\tAlbum Name:\tReleaseDate:");
+				System.out.println("From Genre: " + gnr + "\t-" + rs.getString(1));
+				System.out.println("\t---------------------------------------");
+				System.out.println("\nAudio File Name:\tCreator:\tDuration:\tAlbum Name:\tReleaseDate:");
+				System.out.println("\t---------------------------------------");
 				do {
-					System.out.println(rs.getString(1)+ "\t" +rs.getString(2) + "\t" + rs.getString(3) + "\t" + rs.getString(4));
+					String track = abbreviate(rs.getString("ReleaseName"), 23);
+					System.out.printf("%-23s",track);
+					System.out.printf("| %s | %-3s | %s | %s\n" , rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6));
 				} while(rs.next());
 			}
 		}
@@ -625,6 +634,56 @@ public class Queries {
             return -1;
     	}
     	return trackID;
+	}
+	
+	/**
+	 * insertCreator intakes the name of a new creator and gives them a unique creator ID
+	 * @param name
+	 */
+	public int insertCreator(String name) {
+			int creatorID = getID(name);
+			try {
+				pStatement = conn.prepareStatement(
+						"INSERT INTO adb.creator (CreatorID, Name)" +
+						" VALUES (?, ?);");
+				
+				//set values to insert
+				pStatement.setInt(1, creatorID);
+				pStatement.setString(2, name);
+				pStatement.execute();
+				conn.commit();
+				System.out.println("Successfully inserted new creator with ID: " + creatorID);
+			} catch (SQLException e) {
+				e.printStackTrace();
+				return -1;
+			}
+		return creatorID;
+	}
+	
+	/**
+	 * insert genre inserts a genre with name as ID and optional description
+	 * @param genreID
+	 * @param descrip
+	 */
+	public void insertGenre(String genreID, String descrip) {
+			try {
+					pStatement = conn.prepareStatement(
+							"INSERT INTO abd.genre (GenreID, Description)" +
+							" VALUES (?, ?);");
+					//insert values
+					pStatement.setString(1, genreID);
+					if (descrip != null) pStatement.setString(2, descrip);
+					else pStatement.setNull(2, Types.VARCHAR);
+					pStatement.execute();
+					conn.commit();
+					System.out.println("Successfully inserted new genre: " + genreID);
+				} 
+			catch(SQLIntegrityConstraintViolationException e) {
+		        	System.out.println("Genre already exists in the database.");
+		    }
+			catch (SQLException e) {
+				e.printStackTrace();
+			}
 	}
 
 
