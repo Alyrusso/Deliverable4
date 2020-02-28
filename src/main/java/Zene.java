@@ -37,6 +37,7 @@ public class Zene {
         insertOptions.add("c: add new creator");
         insertOptions.add("t: add new audio file");
         insertOptions.add("a: add new album");
+        insertOptions.add("g: add new genre");
         insertOptions.add("b: back to main menu");
 
         searchOptions.add("c: search by creator");
@@ -201,8 +202,21 @@ public class Zene {
 
             //add new creator
             case 'c':
+            	System.out.println("Enter name of new Creator: ");
+            	String creatorName = in.nextLine();
+            	query.insertCreator(creatorName);
+            	
                 //todo implement insert creator
                 break;
+             
+            //add new record label    
+            case 'g':
+            	System.out.println("Enter name of new genre: ");
+            	String recLab = in.nextLine();
+            	System.out.println("Enter description of genre or leave blank for null: ");
+            	String descrip = in.nextLine();
+            	query.insertGenre(recLab, descrip);
+            	break;
 
             default:
                 System.out.println("Unrecognized menu option (" + lastOption + "). Please try again.");
