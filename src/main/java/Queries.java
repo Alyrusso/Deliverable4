@@ -64,14 +64,17 @@ public class Queries {
 	public void queryByAudioTitle(String title) {
 		try{
 			//create statement
-			String stmt = "SELECT ReleaseName, creator.Name, Duration, AlbumName, ReleaseDate, ExplicitRating "
-					+ "FROM album, audiofile, createdby, creator "
-					+ "WHERE album.AlbumID = audioFile.AlbumID "
-					+ "AND audiofile.TrackID = createdby.TrackID "
-					+ "AND createdby.CreatorID = creator.CreatorID "
-					+ "AND audiofile.ReleaseName = ? "
-					+ "ORDER BY ReleaseDate ASC;"; //if two songs have name order by release date
-			PreparedStatement pstmt = conn.prepareStatement(stmt);
+			PreparedStatement pstmt = conn.prepareStatement(
+					"SELECT ReleaseName, creator.Name, trim(LEADING ':' FROM trim(LEADING '0' FROM sec_to_time(Duration))) AS Duration, AlbumName, date(ReleaseDate) AS ReleaseDate, ExplicitRating\n" +
+					" FROM album, audiofile" +
+					" LEFT JOIN createdby" +
+					" ON audiofile.TrackID = createdby.TrackID" +
+					" LEFT JOIN creator" +
+					" ON creator.CreatorID = createdby.CreatorID" +
+					" WHERE album.AlbumID = audioFile.AlbumID" +
+					" AND audiofile.ReleaseName = ?" +
+					" ORDER BY ReleaseDate ASC;" //if two songs have name order by release date
+			);
 			pstmt.setString(1, title);
 			//make query
 			ResultSet rs = pstmt.executeQuery();
@@ -81,12 +84,16 @@ public class Queries {
 			}
 			//display results
 			else {
-				System.out.printf("%-22s   %-16s   %-3s   %-18s   %-8s   %s\n", "Audio File Name:", "Creator:", "Drtn.", "Album Name:", "Explicit:", "Release Date:");
+				System.out.printf("%-22s   %-18s   %-5s   %-20s   %-8s   %s\n", "Audio File Name:", "Creator:", "Drtn.", "Album Name:", "Explicit:", "Release Date:");
 				System.out.println("\t---------------------------------------");
 				do {
-					String track = abbreviate(rs.getString("ReleaseName"), 22);
-					String rating = (rs.getInt("ExplicitRating") == 0) ? "Clean" : "Explicit";
-					System.out.printf("%-22s │ %-18s │ %-3s │ %-20s │ %-9s │ %s\n", track, rs.getString(2), rs.getString(3), rs.getString(4), rating, rs.getString(5));
+					System.out.printf("%-22s │ %-18s │ %-5s │ %-20s │ %-9s │ %s\n",
+							abbreviate(rs.getString("ReleaseName"), 22),
+							abbreviate(nullable(rs.getString("creator.Name")), 18),
+							rs.getString("Duration"),
+							abbreviate(rs.getString("AlbumName"), 20),
+							(rs.getInt("ExplicitRating") == 0) ? "Clean" : "Explicit", //replace 0/1 rating with words
+							nullable(rs.getString("ReleaseDate")));
 				} while(rs.next());
 			}
 		}
