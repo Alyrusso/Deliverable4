@@ -436,9 +436,11 @@ public class Queries {
     }
 
 	public void printCountryCodes() {
+    	Statement statement = null;
+    	ResultSet rs = null;
     	try {
     		statement = conn.createStatement();
-    		ResultSet rs = statement.executeQuery(
+    		rs = statement.executeQuery(
     				"SELECT country.Name, CountryID " +
 					"FROM country"
 			);
@@ -451,7 +453,14 @@ public class Queries {
 				} while (rs.next());
 			}
 		} catch (SQLException e) {
-			e.printStackTrace();
+			System.out.println("Error when attempting to print country codes: " + e.getMessage());
+		} finally {
+			try {
+				if (rs != null) rs.close();
+				if (statement != null) statement.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
