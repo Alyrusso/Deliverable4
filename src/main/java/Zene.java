@@ -50,42 +50,48 @@ public class Zene {
         searchOptions.add("e: list tracks by explicit rating");
         searchOptions.add("b: back to main menu");
 
-        query = new Queries(connectDB());
 
-        //menu loop
-        char lastOption = '\0';
-        while (lastOption != 'q') {
-            printMenu(menuOptions);
-            lastOption = getNullableChar();
-            switch (lastOption) {
-                case 's':
-                    printMenu(searchOptions);
-                    lastOption = getNullableChar();
-                    if (lastOption != 'q' && lastOption != 'b') processSearch(lastOption);
-                    break;
-                case 'i':
-                    printMenu(insertOptions);
-                    lastOption = getNullableChar();
-                    if (lastOption != 'q' && lastOption != 'b') processInsert(lastOption);
-                    break;
-                case 'd':
-                    printMenu(deleteOptions);
-                    lastOption = getNullableChar();
-                    if (lastOption != 'q' && lastOption != 'b') processDelete(lastOption);
-                    break;
+        //use try-with-resources block to ensure close regardless of success
+        System.out.print("connecting to db...");
+        try (Connection conn = DriverManager.getConnection(url, username, password)) {
+            System.out.println("connected!");
+            conn.setAutoCommit(false); //do we want autocommit on/off?
+            query = new Queries(conn);
 
-                default:
-                    System.out.println("Error: unrecognized option (" + lastOption + "). Try again.");
-                    break;
-                case 'q':
-                case 'b':
-                    break;
+            //menu loop
+            char lastOption = '\0';
+            while (lastOption != 'q') {
+                printMenu(menuOptions);
+                lastOption = getNullableChar();
+                switch (lastOption) {
+                    case 's':
+                        printMenu(searchOptions);
+                        lastOption = getNullableChar();
+                        if (lastOption != 'q' && lastOption != 'b') processSearch(lastOption);
+                        break;
+                    case 'i':
+                        printMenu(insertOptions);
+                        lastOption = getNullableChar();
+                        if (lastOption != 'q' && lastOption != 'b') processInsert(lastOption);
+                        break;
+                    case 'd':
+                        printMenu(deleteOptions);
+                        lastOption = getNullableChar();
+                        if (lastOption != 'q' && lastOption != 'b') processDelete(lastOption);
+                        break;
+
+                    default:
+                        System.out.println("Error: unrecognized option (" + lastOption + "). Try again.");
+                        break;
+                    case 'q':
+                    case 'b':
+                        break;
+                }
             }
+        } catch (SQLException e) {
+            System.out.println("\nError: could not connect to database. Wrong url or login info?");
         }
-
-        query.disconnect();
     }
-
 
     //switch for all the various search options that may be called
     private static void processSearch(char lastOption) {
@@ -268,21 +274,6 @@ public class Zene {
             System.out.println("Error: driver not found");
             System.exit(1);
         }
-    }
-
-    //establishes connection to database and initializes query handler
-    private static Connection connectDB() {
-        System.out.print("connecting to db...");
-        Connection conn = null;
-        try {
-            conn = DriverManager.getConnection(url, username, password);
-            conn.setAutoCommit(false); //do we want autocommit on/off?
-        } catch (SQLException e) {
-            System.out.println("\nError: could not connect to database. Wrong url or login info?");
-            System.exit(1);
-        }
-        System.out.println("connected!");
-        return conn;
     }
 
     //formats user input as number, continually prompts if not proper int

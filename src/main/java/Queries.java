@@ -683,16 +683,4 @@ public class Queries {
 		if (s == null) return "-";
 		return s;
 	}
-
-	//disconnects all DB resources if initialized
-	public void disconnect() {
-		System.out.print("closing db connection...");
-		try {
-			//close all DB resources
-			if (conn != null) conn.close();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		System.out.println("closed!");
-	}
 }
