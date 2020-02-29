@@ -288,9 +288,16 @@ public class Queries {
 					System.out.println("Error: broken query or erroneous value passed!");
 				} else {
 					//produce result
-					System.out.println("TrackID:\tReleaseName:\tDuration:\tArtist:\tCreatorID:");
+					//System.out.println("TrackID:\tReleaseName:\tDuration:\tArtist:\tCreatorID:");
+					System.out.printf("%15s   %41s   %5s   %-20s   %15s\n", "TrackID", "Track Name", "Drtn.", "Artist", "ArtistID");
 					do {
-						System.out.println(rs.getInt(1) + "\t" + rs.getString(2) + "\t" + rs.getInt(3) + "\t" + rs.getString(4) + "\t" + rs.getInt(5));
+						//System.out.println(rs.getInt(1) + "\t" + rs.getString(2) + "\t" + rs.getInt(3) + "\t" + rs.getString(4) + "\t" + rs.getInt(5));
+						String tID = rs.getString("TrackId");
+						String t = abbreviate(rs.getString("ReleaseName"), 40);
+						String d = rs.getString("Duration");
+						String a = abbreviate(rs.getString ("Artist"), 19);
+						String aID = rs.getString("CreatorID");
+						System.out.printf("%15s │ %-41s │ %5s │ %-20s │ %15s\n", tID, t, d, a, aID); 
 					} while(rs.next());
 				}
 			}
