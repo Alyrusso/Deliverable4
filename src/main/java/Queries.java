@@ -114,7 +114,7 @@ public class Queries {
 				" ON audiofile.AlbumID = album.AlbumID" +
 				" WHERE album.AlbumName = ?" +
 				" GROUP BY album.AlbumID" +
-				" ORDER BY ReleaseDate DESC"))
+				" ORDER BY ReleaseDate DESC;"))
 		{
 			pstmt.setString(1, title);
 			//make query
@@ -613,7 +613,7 @@ public class Queries {
 		//use try-with-resources block to ensure close regardless of success
 		try (PreparedStatement pStatement = conn.prepareStatement(
 					"INSERT INTO adb.ingenre (TrackID, GenreID)" +
-					" VALUES (?, ?)"))
+					" VALUES (?, ?);"))
 		{
 			pStatement.execute();
 			conn.commit();
@@ -640,6 +640,7 @@ public class Queries {
 			pStatement.setString(2, name);
 			pStatement.execute();
 			conn.commit();
+			pStatement.close();
 			System.out.println("Successfully inserted new creator with ID: " + creatorID);
 		} catch (SQLException e) {
 			System.out.println("Error when inserting creator \"" + name + "\": " + e.getMessage());
@@ -665,6 +666,7 @@ public class Queries {
 			else pStatement.setNull(2, Types.VARCHAR);
 			pStatement.execute();
 			conn.commit();
+			pStatement.close();
 			System.out.println("Successfully inserted new genre: " + genreID);
 		} catch(SQLIntegrityConstraintViolationException e) {
 			System.out.println("Genre already exists in the database.");
@@ -674,8 +676,8 @@ public class Queries {
 	}
 
 	/**
-	 * insertCreator intakes the name of a new creator and gives them a unique creator ID
-	 * @param name Name of creator.
+	 * insertCreator intakes the name of a new country and gives a unique ID
+	 * @param name Name of country
 	 */
 	public int insertCountry(String name) {
 		int countryID = getID(name);
@@ -689,14 +691,56 @@ public class Queries {
 			pStatement.setString(2, name);
 			pStatement.execute();
 			conn.commit();
+			pStatement.close();
 			System.out.println("Successfully inserted new country with ID: " + countryID);
 		} catch(SQLIntegrityConstraintViolationException e) {
 			System.out.println("Country already exists in the database.");
-		}catch (SQLException e) {
+		} catch (SQLException e) {
 			System.out.println("Error when inserting country \"" + name + "\": " + e.getMessage());
 			return -1;
 		}
 		return countryID;
+	}
+	
+	/**
+	 * updateGenre allows for changing the description of an existing genre
+	 * @param genre name of genre to update
+	 * @param descrip new description of genre
+	 */
+	public void updateGenre(String genre, String descrip) {
+		//use try-with-resources block to ensure close regardless of success
+		try (PreparedStatement pstmt = conn.prepareStatement(
+				"SELECT GenreID, Description " +
+				"FROM genre " +
+				"WHERE GenreID = ?;"))
+		{
+			String oldDescrip = null;
+			pstmt.setString(1, genre);
+			try (ResultSet rs = pstmt.executeQuery()) {
+				if(!rs.next()) {
+					System.out.println("That genre does not exist yet.");
+					return;
+				}
+				oldDescrip = rs.getString(2);
+			}
+			try (PreparedStatement pStatement = conn.prepareStatement(
+					"UPDATE adb.genre "+ 
+					"SET genre.Description = ? " +
+					"WHERE GenreID = ?;"))
+			{
+				//set values to insert
+				if (descrip != null) pStatement.setString(1, descrip);
+				else pStatement.setNull(1, Types.VARCHAR);
+				pStatement.setString(2, genre);
+				pStatement.executeUpdate();
+				conn.commit();
+				pStatement.close();
+				System.out.println("Successfully updated new genre description: " + genre);
+				System.out.println("Description " + oldDescrip +" is now: " + descrip);
+			}
+		}catch(SQLException e) {
+			System.out.println("Error when updating genre: " + genre + ": " + e.getMessage());
+		} 
 	}
 
 	//private helper method for returning a random ID#
