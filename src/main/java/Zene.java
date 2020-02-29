@@ -38,6 +38,7 @@ public class Zene {
         insertOptions.add("t: add new audio file");
         insertOptions.add("a: add new album");
         insertOptions.add("g: add new genre");
+        insertOptions.add("n: add new country");
         insertOptions.add("b: back to main menu");
 
         searchOptions.add("c: search by creator");
@@ -223,6 +224,13 @@ public class Zene {
             	query.insertGenre(recLab, descrip);
             	break;
 
+            //add new country
+            case 'n':
+            	System.out.print("Enter name of country: ");
+            	String countryName = in.nextLine();
+            	query.insertCountry(countryName);
+            	break;
+            	
             default:
                 System.out.println("Unrecognized menu option (" + lastOption + "). Please try again.");
                 break;
