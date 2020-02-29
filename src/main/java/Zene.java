@@ -27,11 +27,13 @@ public class Zene {
         Set<String> insertOptions = new LinkedHashSet<>();
         Set<String> deleteOptions = new LinkedHashSet<>();
         Set<String> searchOptions = new LinkedHashSet<>();
+        Set<String> updateOptions = new LinkedHashSet<>();
 
         //add all the various menu options.
         //remember to add a case to processOption() for the preceding char!
         menuOptions.add("s: search the database");
         menuOptions.add("i: insert items into the database");
+        menuOptions.add("u: update items in the database");
         menuOptions.add("d: delete items from the database");
 
         insertOptions.add("c: add new creator");
@@ -50,6 +52,9 @@ public class Zene {
         searchOptions.add("y: list all albums by media type");
         searchOptions.add("e: list tracks by explicit rating");
         searchOptions.add("b: back to main menu");
+        
+        updateOptions.add("g: update genre");
+        updateOptions.add("b: back to main menu");
 
 
         //use try-with-resources block to ensure close regardless of success
@@ -79,6 +84,11 @@ public class Zene {
                         printMenu(deleteOptions);
                         lastOption = getNullableChar();
                         if (lastOption != 'q' && lastOption != 'b') processDelete(lastOption);
+                        break;
+                    case 'u':
+                        printMenu(updateOptions);
+                        lastOption = getNullableChar();
+                        if (lastOption != 'q' && lastOption != 'b') processUpdate(lastOption);
                         break;
 
                     default:
@@ -236,8 +246,26 @@ public class Zene {
                 break;
         }
     }
+    
+  //switch for all the various search options that may be called
+    private static void processUpdate(char lastOption) {
+        switch (lastOption) {
+            //genre update
+            case 'g':
+                System.out.print("Enter the genre name to update: ");
+                String name = in.nextLine();
+                System.out.print("Enter description of genre or leave blank for null: ");
+            	String descrip = in.nextLine();
+                query.updateGenre(name, descrip);
+                break;
 
-    //switch for all the various insert options that may be called
+            default:
+                System.out.println("Unrecognized menu option (" + lastOption + "). Please try again.");
+                break;
+        }
+    }
+
+    //switch for all the various delete options that may be called
     //prompt for any extra information as needed, then call some jdbc handler method
     private static void processDelete(char lastOption) {
         switch (lastOption) {
