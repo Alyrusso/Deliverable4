@@ -1,3 +1,4 @@
+
 package main.java;
 
 import java.sql.*;
@@ -665,6 +666,31 @@ public class Queries {
 		}
 	}
 
+	/**
+	 * insertCreator intakes the name of a new creator and gives them a unique creator ID
+	 * @param name Name of creator.
+	 */
+	public int insertCountry(String name) {
+		int countryID = getID(name);
+		//use try-with-resources block to ensure close regardless of success
+		try (PreparedStatement pStatement = conn.prepareStatement(
+				"INSERT INTO adb.country (CountryID, Name)" +
+				" VALUES (?, ?);"))
+		{
+			//set values to insert
+			pStatement.setInt(1, countryID);
+			pStatement.setString(2, name);
+			pStatement.execute();
+			conn.commit();
+			System.out.println("Successfully inserted new country with ID: " + countryID);
+		} catch(SQLIntegrityConstraintViolationException e) {
+			System.out.println("Country already exists in the database.");
+		}catch (SQLException e) {
+			System.out.println("Error when inserting country \"" + name + "\": " + e.getMessage());
+			return -1;
+		}
+		return countryID;
+	}
 
 	//private helper method for returning a random ID#
 	private int getID(String s) {
