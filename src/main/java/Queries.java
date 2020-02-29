@@ -194,7 +194,7 @@ public class Queries {
 	public void queryByGenre(String gnr) {
 		try{
 			//create statement
-			String stmt = "SELECT Description, ReleaseName, creator.Name,  Duration, AlbumName, ReleaseDate "
+			String stmt = "SELECT Description, ReleaseName, creator.Name,  trim(LEADING ':' FROM trim(LEADING '0' FROM sec_to_time(Duration))) AS Duration, AlbumName, date(ReleaseDate) AS ReleaseDate "
 					+ "FROM album, audiofile, createdby, creator, ingenre, genre "
 					+ "WHERE album.AlbumID = audioFile.AlbumID "
 					+ "AND audiofile.TrackID = createdby.TrackID "
@@ -213,14 +213,18 @@ public class Queries {
 			}
 			//display results
 			else {
-				System.out.println("From Genre: " + gnr + "\t-" + rs.getString(1));
-				System.out.println("\t---------------------------------------");
-				System.out.println("\nAudio File Name:\tCreator:\tDuration:\tAlbum Name:\tReleaseDate:");
+				System.out.println("From Genre: " + gnr + "\t-" + rs.getString("Description"));
+				System.out.println("\n\t---------------------------------------");
+				System.out.printf("%-23s   %-20s   %-5s   %-20s   %s\n", "Audio File Name", "Creator", "Drtn.", "Album Name", "Release Date");
+				//System.out.println("\nAudio File Name:\tCreator:\tDuration:\tAlbum Name:\tRelease Date:");
 				System.out.println("\t---------------------------------------");
 				do {
-					String track = abbreviate(rs.getString("ReleaseName"), 23);
-					System.out.printf("%-23s",track);
-					System.out.printf("│ %s │ %-3s │ %s │ %s\n" , rs.getString(3), rs.getString(4), rs.getString(5), rs.getString(6));
+					System.out.printf("%-23s │ %-20s │ %-5s │ %-20s │ %s\n",
+							abbreviate(rs.getString("ReleaseName"), 23),
+							abbreviate(rs.getString("creator.Name"), 20),
+							rs.getString("Duration"),
+							abbreviate(rs.getString("AlbumName"), 20),
+							rs.getString("ReleaseDate"));
 				} while(rs.next());
 			}
 		}
