@@ -167,9 +167,8 @@ public class Zene {
                     Integer duration = requestInt();
                     System.out.print("Enter y if track is explicit, anything else for clean: ");
                     Integer rating = (getNullableChar() == 'y') ? 1 : 0;
-                    System.out.print("Enter country ID or leave blank for null: ");
-                    Integer countryID = null;
-                    if (getNullableChar() != ' ') countryID = requestInt();
+                    System.out.print("Enter country ID or leave blank for null ('?' for list of codes): ");
+                    Integer countryID = getNullableInteger("country");
 
                     //attempt adding track to db
                     int trackID = query.insertAudiofile(track, rating, duration, countryID, albumID);
@@ -193,8 +192,8 @@ public class Zene {
                 Integer duration = requestInt();
                 System.out.print("Enter y if track is explicit, anything else for clean: ");
                 Integer rating = (getNullableChar() == 'y') ? 1 : 0;
-                System.out.print("Enter country ID or leave blank for null: ");
-                Integer countryID = getNullableInteger();
+                System.out.print("Enter country ID or leave blank for null ('?' for list of codes): ");
+                Integer countryID = getNullableInteger("country");
                 query.insertAudiofile(track, rating, duration, countryID, aID);
 
                 //todo: implement t
@@ -316,17 +315,27 @@ public class Zene {
     }
 
     //tries to return users input as Integer, or null if input was blank. loops if input cannot be made into integer
-    private static Integer getNullableInteger() {
+    private static Integer getNullableInteger(String context) {
         int val = -1;
         do {
             String s = in.nextLine();
-            try {
-                val = Integer.parseInt(s);
-            } catch (NumberFormatException e) {
-                if (e.getMessage().contains("input string: \"\"")) return null;
-                System.out.print("That was not a properly formatted single number. Please try again: ");
+            if (s.length() > 0 && s.charAt(0) == '?') printCodes(context);
+            else {
+                try {
+                    val = Integer.parseInt(s);
+                } catch (NumberFormatException e) {
+                    if (e.getMessage().contains("input string: \"\"")) return null;
+                    System.out.print("That was not a properly formatted single number. Please try again: ");
+                }
             }
         } while (val < 0);
         return val;
+    }
+
+    private static void printCodes(String context) {
+        switch (context.toLowerCase()) {
+            case "country":
+                query.printCountryCodes();
+        }
     }
 }

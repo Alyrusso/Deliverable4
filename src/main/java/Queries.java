@@ -435,6 +435,25 @@ public class Queries {
         }
     }
 
+	public void printCountryCodes() {
+    	try {
+    		statement = conn.createStatement();
+    		ResultSet rs = statement.executeQuery(
+    				"SELECT country.Name, CountryID " +
+					"FROM country"
+			);
+    		if (!rs.next()) {
+				System.out.println("No countries found in database");
+			} else {
+				System.out.print("ID# | Country\n");
+    			do {
+					System.out.printf("%3d | %s\n", rs.getInt("CountryID"), rs.getString("country.Name"));
+				} while (rs.next());
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
 
 	/**
 	 * Get the average track duration for all tracks in a user specified album
