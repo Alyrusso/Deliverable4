@@ -56,21 +56,21 @@ public class Zene {
         char lastOption = '\0';
         while (lastOption != 'q') {
             printMenu(menuOptions);
-            lastOption = Character.toLowerCase(in.nextLine().charAt(0));
+            lastOption = getNullableChar();
             switch (lastOption) {
                 case 's':
                     printMenu(searchOptions);
-                    lastOption = Character.toLowerCase(in.nextLine().charAt(0));
+                    lastOption = getNullableChar();
                     if (lastOption != 'q' && lastOption != 'b') processSearch(lastOption);
                     break;
                 case 'i':
                     printMenu(insertOptions);
-                    lastOption = Character.toLowerCase(in.nextLine().charAt(0));
+                    lastOption = getNullableChar();
                     if (lastOption != 'q' && lastOption != 'b') processInsert(lastOption);
                     break;
                 case 'd':
                     printMenu(deleteOptions);
-                    lastOption = Character.toLowerCase(in.nextLine().charAt(0));
+                    lastOption = getNullableChar();
                     if (lastOption != 'q' && lastOption != 'b') processDelete(lastOption);
                     break;
 
@@ -208,11 +208,11 @@ public class Zene {
                 //todo implement insert creator
                 break;
              
-            //add new record label    
+            //add new genre
             case 'g':
-            	System.out.println("Enter name of new genre: ");
+            	System.out.print("Enter name of new genre: ");
             	String recLab = in.nextLine();
-            	System.out.println("Enter description of genre or leave blank for null: ");
+            	System.out.print("Enter description of genre or leave blank for null: ");
             	String descrip = in.nextLine();
             	query.insertGenre(recLab, descrip);
             	break;
@@ -315,11 +315,16 @@ public class Zene {
     }
 
     //tries to return users input as Integer, or null if input was blank. loops if input cannot be made into integer
+    //passes String context to printCodes() function if first char is '?', but still requires int to break loop
     private static Integer getNullableInteger(String context) {
         int val = -1;
         do {
             String s = in.nextLine();
-            if (s.length() > 0 && s.charAt(0) == '?') printCodes(context);
+            //check for code list request in the form of ? as first char
+            if (s.length() > 0 && s.charAt(0) == '?') {
+                printCodes(context); //pass request for code list to print code switch
+                System.out.print("Enter code: "); //reprint request for code before loop resumes
+            }
             else {
                 try {
                     val = Integer.parseInt(s);
@@ -332,6 +337,8 @@ public class Zene {
         return val;
     }
 
+    //allows printing of IDs as needed.
+    //just add a new case to the switch and call whatever print you need.
     private static void printCodes(String context) {
         switch (context.toLowerCase()) {
             case "country":

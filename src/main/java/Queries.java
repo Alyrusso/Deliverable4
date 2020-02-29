@@ -714,7 +714,7 @@ public class Queries {
 	public void insertGenre(String genreID, String descrip) {
 			try {
 					pStatement = conn.prepareStatement(
-							"INSERT INTO abd.genre (GenreID, Description)" +
+							"INSERT INTO genre (GenreID, Description)" +
 							" VALUES (?, ?);");
 					//insert values
 					pStatement.setString(1, genreID);
