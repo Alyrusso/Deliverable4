@@ -50,42 +50,48 @@ public class Zene {
         searchOptions.add("e: list tracks by explicit rating");
         searchOptions.add("b: back to main menu");
 
-        query = new Queries(connectDB());
 
-        //menu loop
-        char lastOption = '\0';
-        while (lastOption != 'q') {
-            printMenu(menuOptions);
-            lastOption = Character.toLowerCase(in.nextLine().charAt(0));
-            switch (lastOption) {
-                case 's':
-                    printMenu(searchOptions);
-                    lastOption = Character.toLowerCase(in.nextLine().charAt(0));
-                    if (lastOption != 'q' && lastOption != 'b') processSearch(lastOption);
-                    break;
-                case 'i':
-                    printMenu(insertOptions);
-                    lastOption = Character.toLowerCase(in.nextLine().charAt(0));
-                    if (lastOption != 'q' && lastOption != 'b') processInsert(lastOption);
-                    break;
-                case 'd':
-                    printMenu(deleteOptions);
-                    lastOption = Character.toLowerCase(in.nextLine().charAt(0));
-                    if (lastOption != 'q' && lastOption != 'b') processDelete(lastOption);
-                    break;
+        //use try-with-resources block to ensure close regardless of success
+        System.out.print("connecting to db...");
+        try (Connection conn = DriverManager.getConnection(url, username, password)) {
+            System.out.println("connected!");
+            conn.setAutoCommit(false); //do we want autocommit on/off?
+            query = new Queries(conn);
 
-                default:
-                    System.out.println("Error: unrecognized option (" + lastOption + "). Try again.");
-                    break;
-                case 'q':
-                case 'b':
-                    break;
+            //menu loop
+            char lastOption = '\0';
+            while (lastOption != 'q') {
+                printMenu(menuOptions);
+                lastOption = getNullableChar();
+                switch (lastOption) {
+                    case 's':
+                        printMenu(searchOptions);
+                        lastOption = getNullableChar();
+                        if (lastOption != 'q' && lastOption != 'b') processSearch(lastOption);
+                        break;
+                    case 'i':
+                        printMenu(insertOptions);
+                        lastOption = getNullableChar();
+                        if (lastOption != 'q' && lastOption != 'b') processInsert(lastOption);
+                        break;
+                    case 'd':
+                        printMenu(deleteOptions);
+                        lastOption = getNullableChar();
+                        if (lastOption != 'q' && lastOption != 'b') processDelete(lastOption);
+                        break;
+
+                    default:
+                        System.out.println("Error: unrecognized option (" + lastOption + "). Try again.");
+                        break;
+                    case 'q':
+                    case 'b':
+                        break;
+                }
             }
+        } catch (SQLException e) {
+            System.out.println("\nError: could not connect to database. Wrong url or login info?");
         }
-
-        query.disconnect();
     }
-
 
     //switch for all the various search options that may be called
     private static void processSearch(char lastOption) {
@@ -167,9 +173,8 @@ public class Zene {
                     Integer duration = requestInt();
                     System.out.print("Enter y if track is explicit, anything else for clean: ");
                     Integer rating = (getNullableChar() == 'y') ? 1 : 0;
-                    System.out.print("Enter country ID or leave blank for null: ");
-                    Integer countryID = null;
-                    if (getNullableChar() != ' ') countryID = requestInt();
+                    System.out.print("Enter country ID or leave blank for null ('?' for list of codes): ");
+                    Integer countryID = getNullableInteger("country");
 
                     //attempt adding track to db
                     int trackID = query.insertAudiofile(track, rating, duration, countryID, albumID);
@@ -193,8 +198,8 @@ public class Zene {
                 Integer duration = requestInt();
                 System.out.print("Enter y if track is explicit, anything else for clean: ");
                 Integer rating = (getNullableChar() == 'y') ? 1 : 0;
-                System.out.print("Enter country ID or leave blank for null: ");
-                Integer countryID = getNullableInteger();
+                System.out.print("Enter country ID or leave blank for null ('?' for list of codes): ");
+                Integer countryID = getNullableInteger("country");
                 query.insertAudiofile(track, rating, duration, countryID, aID);
 
                 //todo: implement t
@@ -209,11 +214,11 @@ public class Zene {
                 //todo implement insert creator
                 break;
              
-            //add new record label    
+            //add new genre
             case 'g':
-            	System.out.println("Enter name of new genre: ");
+            	System.out.print("Enter name of new genre: ");
             	String recLab = in.nextLine();
-            	System.out.println("Enter description of genre or leave blank for null: ");
+            	System.out.print("Enter description of genre or leave blank for null: ");
             	String descrip = in.nextLine();
             	query.insertGenre(recLab, descrip);
             	break;
@@ -244,14 +249,14 @@ public class Zene {
         //check for sufficient args, prompt for user input otherwise
         String driver;
         if (args.length < 4) {
-            System.out.println("Please enter the database URL (e.g. jdbc:mysql://localhost:3306/world)");
-            url = in.next();
-            System.out.println("Please enter your database username: ");
-            username = in.next();
-            System.out.println("Please enter your database password: ");
-            password = in.next();
-            System.out.println("Please enter the driver you wish to use (e.g. com.mysql.cj.jdbc.Driver)");
-            driver = in.next();
+            System.out.print("Please enter the database URL (e.g. jdbc:mysql://localhost:3306/world): ");
+            url = in.nextLine();
+            System.out.print("Please enter your database username: ");
+            username = in.nextLine();
+            System.out.print("Please enter your database password: ");
+            password = in.nextLine();
+            System.out.print("Please enter the driver you wish to use (e.g. com.mysql.cj.jdbc.Driver): ");
+            driver = in.nextLine();
         } else {
             url = args[0];
             username = args[1];
@@ -269,21 +274,6 @@ public class Zene {
             System.out.println("Error: driver not found");
             System.exit(1);
         }
-    }
-
-    //establishes connection to database and initializes query handler
-    private static Connection connectDB() {
-        System.out.print("connecting to db...");
-        Connection conn = null;
-        try {
-            conn = DriverManager.getConnection(url, username, password);
-            conn.setAutoCommit(false); //do we want autocommit on/off?
-        } catch (SQLException e) {
-            System.out.println("\nError: could not connect to database. Wrong url or login info?");
-            System.exit(1);
-        }
-        System.out.println("connected!");
-        return conn;
     }
 
     //formats user input as number, continually prompts if not proper int
@@ -316,17 +306,34 @@ public class Zene {
     }
 
     //tries to return users input as Integer, or null if input was blank. loops if input cannot be made into integer
-    private static Integer getNullableInteger() {
+    //passes String context to printCodes() function if first char is '?', but still requires int to break loop
+    private static Integer getNullableInteger(String context) {
         int val = -1;
         do {
             String s = in.nextLine();
-            try {
-                val = Integer.parseInt(s);
-            } catch (NumberFormatException e) {
-                if (e.getMessage().contains("input string: \"\"")) return null;
-                System.out.print("That was not a properly formatted single number. Please try again: ");
+            //check for code list request in the form of ? as first char
+            if (s.length() > 0 && s.charAt(0) == '?') {
+                printCodes(context); //pass request for code list to print code switch
+                System.out.print("Enter code: "); //reprint request for code before loop resumes
+            }
+            else {
+                try {
+                    val = Integer.parseInt(s);
+                } catch (NumberFormatException e) {
+                    if (e.getMessage().contains("input string: \"\"")) return null;
+                    System.out.print("That was not a properly formatted single number. Please try again: ");
+                }
             }
         } while (val < 0);
         return val;
+    }
+
+    //allows printing of IDs as needed.
+    //just add a new case to the switch and call whatever print you need.
+    private static void printCodes(String context) {
+        switch (context.toLowerCase()) {
+            case "country":
+                query.printCountryCodes();
+        }
     }
 }
