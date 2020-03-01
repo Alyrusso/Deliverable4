@@ -370,9 +370,7 @@ public class Zene {
         	case 'a':
         		System.out.println("Please enter the name of the album you would like to delete");
         		album = in.nextLine();
-        		System.out.println("What is the name of the creator for the album you would like to delete?");
-        		creator = in.nextLine();
-        		x = query.deleteAlbum(album, creator);
+        		x = query.deleteAlbum(album);
         		if (x == 0) {
         			System.out.println("Deletion successful");
         		}
