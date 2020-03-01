@@ -742,8 +742,182 @@ public class Queries {
 			System.out.println("Error when updating genre: " + genre + ": " + e.getMessage());
 		} 
 	}
+	
+	/**
+	 * updateLabelCountry allows for changing the country of an existing label
+	 * @param label name of label to update
+	 * @param country new country of label
+	 */
+	public void updateLabelCountry(String label, Integer country) {
+		//use try-with-resources block to ensure close regardless of success
+		try (PreparedStatement pstmt = conn.prepareStatement(
+				"SELECT LabelID, CountryID " +
+				"FROM recordlabel " +
+				"WHERE Name = ?;"))
+		{
+			String oldCountry = null;
+			pstmt.setString(1, label);
+			try (ResultSet rs = pstmt.executeQuery()) {
+				if(!rs.next()) {
+					System.out.println("That label does not exist yet.");
+					return;
+				}
+				oldCountry = rs.getString(2);
+			}
+			try (PreparedStatement pStatement = conn.prepareStatement(
+					"UPDATE adb.recordlabel "+ 
+					"SET CountryID = ? " +
+					"WHERE Name = ?;"))
+			{
+				//set values to insert
+				//int cID = getCountryID(country);
+				if (country != null) pStatement.setInt(1, country);
+				else pStatement.setNull(1, Types.INTEGER);
+				pStatement.setString(2, label);
+				pStatement.executeUpdate();
+				conn.commit();
+				pStatement.close();
+				System.out.println("Successfully updated new country for Record Label: " + label);
+				System.out.println("CountryID " + oldCountry +" of " + label + " is now: " + country);
+			}
+		}catch(SQLException e) {
+			System.out.println("Error when updating label: " + label + ": " + e.getMessage());
+		} 
+	}
+	
+	/**
+	 * updateLabelDate allows for changing the date of an existing label
+	 * @param label name of label to update
+	 * @param country new country of label
+	 */
+	public void updateLabelDate(String label, String date) {
+		//use try-with-resources block to ensure close regardless of success
+		try (PreparedStatement pstmt = conn.prepareStatement(
+				"SELECT LabelID, FoundingDate " +
+				"FROM recordlabel " +
+				"WHERE Name = ?;"))
+		{
+			String oldDate = null;
+			pstmt.setString(1, label);
+			try (ResultSet rs = pstmt.executeQuery()) {
+				if(!rs.next()) {
+					System.out.println("That label does not exist yet.");
+					return;
+				}
+				oldDate = rs.getString(2);
+			}
+			try (PreparedStatement pStatement = conn.prepareStatement(
+					"UPDATE adb.recordlabel "+ 
+					"SET FoundingDate = ? " +
+					"WHERE Name = ?;"))
+			{
+				//set values to insert
+				//int cID = getCountryID(country);
+				if (date != null) pStatement.setString(1, date);
+				else pStatement.setNull(1, Types.DATE);
+				pStatement.setString(2, label);
+				pStatement.executeUpdate();
+				conn.commit();
+				pStatement.close();
+				System.out.println("Successfully updated Founding Date for Record Label: " + label);
+				System.out.println("Founding Date " + oldDate +" of " + label + " is now: " + date);
+			}
+		}catch(SQLException e) {
+			System.out.println("Error when updating label: " + label + ": " + e.getMessage());
+		} 
+	}
 
+	/**
+	 * updateAlbumRD allows for changing the release date of an existing album
+	 * @param album name of album to update
+	 * @param date the updated release date
+	 */
+	public void updateAlbumRD(String album, String date) {
+		//use try-with-resources block to ensure close regardless of success
+		try (PreparedStatement pstmt = conn.prepareStatement(
+				"SELECT AlbumID, ReleaseDate " +
+				"FROM album " +
+				"WHERE AlbumName = ?;"))
+		{
+			String oldDate = null;
+			pstmt.setString(1, album);
+			try (ResultSet rs = pstmt.executeQuery()) {
+				if(!rs.next()) {
+					System.out.println("That album does not exist yet.");
+					return;
+				}
+				oldDate = rs.getString(2);
+			}
+			try (PreparedStatement pStatement = conn.prepareStatement(
+					"UPDATE adb.album "+ 
+					"SET ReleaseDate = ? " +
+					"WHERE AlbumName = ?;"))
+			{
+				//set values to insert
+				//int cID = getCountryID(country);
+				if (date != null) pStatement.setString(1, date);
+				else pStatement.setNull(1, Types.DATE);
+				pStatement.setString(2, album);
+				pStatement.executeUpdate();
+				conn.commit();
+				pStatement.close();
+				System.out.println("Successfully updated release date for album: " + album);
+				System.out.println("Founding Date " + oldDate +" of " + album + " is now: " + date);
+			}
+		}catch(SQLException e) {
+			System.out.println("Error when updating label: " + album + ": " + e.getMessage());
+		} 
+	}
 
+	/**
+	 * updateAlbumRL allows for changing the record label of an existing album
+	 * @param album name of album to be updated
+	 * @param label name of new label for album
+	 */
+	public void updateAlbumRL(String album, String label) {
+		//use try-with-resources block to ensure close regardless of success
+		try (PreparedStatement pstmt = conn.prepareStatement(
+				"SELECT AlbumID, LabelID " +
+				"FROM album " +
+				"WHERE AlbumName = ?;"))
+		{
+			String oldLabel = null;
+			pstmt.setString(1, album);
+			try (ResultSet rs = pstmt.executeQuery()) {
+				if(!rs.next()) {
+					System.out.println("That album does not exist yet.");
+					return;
+				}
+				oldLabel = rs.getString(2);
+			}
+			try (PreparedStatement pStatement = conn.prepareStatement(
+					"UPDATE adb.album "+ 
+					"SET LabelID = ? " +
+					"WHERE AlbumName = ?;"))
+			{
+				//set values to insert
+				int rlID = 0;
+				if (label != null) { 
+					rlID = getRecordLabelID(label);
+					if (rlID == 0 || rlID == -1) {
+						System.out.println("There was an error finding the specified Record Label");
+						return;
+					}
+					pStatement.setInt(1, rlID);
+				}
+				else pStatement.setNull(1, Types.INTEGER);
+				pStatement.setString(2, album);
+				pStatement.executeUpdate();
+				conn.commit();
+				pStatement.close();
+				System.out.println("Successfully updated record label for album: " + album);
+				System.out.println("Record LabelID " + oldLabel +" of " + album + " is now: " + rlID);
+			}
+		}catch(SQLException e) {
+			System.out.println("Error when updating label: " + album + ": " + e.getMessage());
+		} 
+	}
+	
 	/**
 	 * Allows user to change country associated with track
 	 * 
