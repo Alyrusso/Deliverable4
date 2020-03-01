@@ -235,7 +235,7 @@ public class Zene {
 
               //add new record label
             case 'l':
-            	System.out.println("Enter name of new Record Label: ");
+            	System.out.print("Enter name of new Record Label: ");
             	String labelName = in.nextLine();
             	System.out.print("Enter founding date as yyyymmdd (eg. 20190523) or leave blank for null: ");
                 String foundDate = getNullableString();
@@ -246,7 +246,7 @@ public class Zene {
                 
             //add new creator
             case 'c':
-            	System.out.println("Enter name of new Creator: ");
+            	System.out.print("Enter name of new Creator: ");
             	String creatorName = in.nextLine();
             	query.insertCreator(creatorName);
                 break;
@@ -268,7 +268,7 @@ public class Zene {
             	break;
             	
             default:
-                System.out.println("Unrecognized menu option (" + lastOption + "). Please try again.");
+                System.out.print("Unrecognized menu option (" + lastOption + "). Please try again.");
                 break;
         }
     }
