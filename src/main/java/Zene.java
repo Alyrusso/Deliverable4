@@ -205,6 +205,11 @@ public class Zene {
                     //attempt adding track to db
                     int trackID = query.insertAudiofile(track, rating, duration, countryID, albumID, trackCreator);
                     if (trackID > 0) successCount++;
+                    System.out.print("Enter a genre for the new track of leave blank for null: ");
+                    String genre = getNullableString();
+                    if (genre != null) {
+                        query.addGenreToTrack(trackID, genre);
+                    }
                 }
                 if (successCount > 0) System.out.println("Successfully added " + successCount + " tracks to album " + albumName);
                 if (successCount != trackCount) System.out.println(trackCount - successCount + " tracks could not be added.");
@@ -228,8 +233,12 @@ public class Zene {
                 Integer rating = (getNullableChar() == 'y') ? 1 : 0;
                 System.out.print("Enter country ID or leave blank for null ('?' for list of codes): ");
                 Integer countryID = getNullableInteger("country");
-                query.insertAudiofile(track, rating, duration, countryID, aID, creator);
-
+                int trackID = query.insertAudiofile(track, rating, duration, countryID, aID, creator);
+                System.out.print("Enter a genre for the new track of leave blank for no genre: ");
+                String genre = getNullableString();
+                if (genre != null) {
+                    query.addGenreToTrack(trackID, genre);
+                }
                 //todo: implement t
                 break;
 

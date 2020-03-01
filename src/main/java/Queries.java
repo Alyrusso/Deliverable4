@@ -658,20 +658,22 @@ public class Queries {
 
 	/** Associates the specified genre with the specified track.
 	 *
-	 * @param tracKID Track code the genre should be associated with.
-	 * @param Genre Name of genre to add to track.
+	 * @param trackID Track code the genre should be associated with.
+	 * @param genre Name of genre to add to track.
 	 * @return True if successful, false otherwise.
 	 */
-	public boolean addGenreToTrack(int tracKID, String Genre) {
+	public boolean addGenreToTrack(int trackID, String genre) {
 		//use try-with-resources block to ensure close regardless of success
 		try (PreparedStatement pStatement = conn.prepareStatement(
 					"INSERT INTO adb.ingenre (TrackID, GenreID)" +
 					" VALUES (?, ?);"))
 		{
+			pStatement.setInt(1, trackID);
+			pStatement.setString(2, genre);
 			pStatement.execute();
 			conn.commit();
 		} catch (SQLException e) {
-			System.out.println("Error adding Genre " + Genre + " to trackID " + tracKID + ": " + e.getMessage());
+			System.out.println("Error adding Genre " + genre + " to trackID " + trackID + ": " + e.getMessage());
 			return false;
 		}
 		return true;
