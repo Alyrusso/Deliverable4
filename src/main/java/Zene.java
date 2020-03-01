@@ -54,6 +54,7 @@ public class Zene {
         searchOptions.add("b: back to main menu");
         
         updateOptions.add("g: update genre");
+        updateOptions.add("c: update audiofile country");
         updateOptions.add("b: back to main menu");
 
 
@@ -257,6 +258,14 @@ public class Zene {
                 System.out.print("Enter description of genre or leave blank for null: ");
             	String descrip = in.nextLine();
                 query.updateGenre(name, descrip);
+                break;
+
+            case 'c':
+                System.out.print("Enter track name: ");
+                String t_name = in.nextLine();
+                System.out.print("Enter new country name to associate with track: ");
+                String c_name = in.nextLine();
+                query.updateCountryIDaf(track_name, c_name);
                 break;
 
             default:

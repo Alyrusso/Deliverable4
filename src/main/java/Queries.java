@@ -743,6 +743,63 @@ public class Queries {
 		} 
 	}
 
+
+	/**
+	 * Allows user to change country associated with track
+	 * 
+	 * @param track_name
+	 * @param c_name
+	 */
+	public void updateCountryIDaf(String track_name, String c_name){
+    
+		//convert country name to contryID
+		try{
+			int c_id = getCountryID(c_name);
+		}catch(Exception exc){
+			exc.printStackTrace();
+		}
+	
+		try(PreparedStatement p_stmt = conn.prepareStatement(
+			"UPDATE adb.audiofile SET CountryID=? WHERE audiofile.ReleaseName=?;"
+		)){
+			p_stmt.setInt(1, c_id);
+			p_stmt.setString(2, c_name);
+			p_stmt.execute();
+			conn.commit();
+			System.out.println("Successfully updated country for " + track_name + " to: " + c_name);
+	
+		}catch(Exception exc){
+			exc.printStackTrace();
+		}
+	} 
+	
+	/**
+	 * Helper method returns countryID given a coutnry name 
+	 * 
+	 * @param c_name
+	 * @return
+	 */
+	public int getCountryID(String c_name){
+		try(PreparedStatement p_stmt = conn.prepareStatement(
+			"SELECT country.CountryID FROM country WHERE country.Name=?;"
+		)){
+			p_stmt.setString(1, c_name);
+			try(ResultSet rs = p_stmt.executeQuery()){
+				if(rs.next()){
+					int c_id = rs.getInt(1);
+					return c_id;
+				}else{
+					System.out.println("Error: returning unnamed countryID");
+					return -1;
+				}
+			}
+	
+		}catch(Exception exc){
+			exc.printStackTrace();
+		}
+		return -1;
+	}
+
 	//private helper method for returning a random ID#
 	private int getID(String s) {
 		return rand.nextInt(Integer.MAX_VALUE);
