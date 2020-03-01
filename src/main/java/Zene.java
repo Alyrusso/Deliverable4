@@ -75,7 +75,7 @@ public class Zene {
         try (Connection conn = DriverManager.getConnection(url, username, password)) {
             System.out.println("connected!");
             conn.setAutoCommit(false); //do we want autocommit on/off?
-            query = new Queries(conn);
+            query = new Queries(conn, in);
 
             //menu loop
             char lastOption = '\0';
@@ -136,7 +136,7 @@ public class Zene {
             //album search
             case 'a':
                 System.out.print("Enter an album name to search for: ");
-                query.queryByAlbumTitle(in.nextLine());
+                query.queryByAlbumTitle(in.nextLine(), true);
                 break;
 
                 //genre search
@@ -347,7 +347,7 @@ public class Zene {
         		System.out.println("Please enter the name of the creator you would like to delete");
         		creator = in.nextLine();
         		x = query.deleteCreator(creator);
-        		if (x == 0) {
+        		if (x > 0) {
         			System.out.println("Deletion successful");
         		}
         		else {
@@ -368,15 +368,14 @@ public class Zene {
         		break;
         	
         	case 'a':
-        		System.out.println("Please enter the name of the album you would like to delete");
+        		System.out.print("Please enter the name of the album you would like to delete: ");
         		album = in.nextLine();
         		x = query.deleteAlbum(album);
-        		if (x == 0) {
-        			System.out.println("Deletion successful");
-        		}
-        		else {
-        			System.out.println("Unable to find album");
-        		}
+                if (x > 0) {
+                    System.out.println("Successfully deleted " + x + " item" + ((x>1) ? "s" : ""));
+                } else {
+                    System.out.println("Unable to delete requested item");
+                }
         		break;
         	
         	case 'g':
