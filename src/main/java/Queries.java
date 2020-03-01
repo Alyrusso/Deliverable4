@@ -985,7 +985,35 @@ public class Queries {
 	}
 	
 	public int deleteLabel(String label) {
-		return 0;
+		int labelID = getRecordLabelID(label);
+		if(labelID == 0 || labelID == -1) {
+			return -1;
+		}
+		try(PreparedStatement pStatement = conn.prepareStatement(
+					"UPDATE adb.album" +
+					"SET LabelID = ?" +
+					"WHERE LabelID = ?;"))
+			{
+				pStatement.setNull(1, Types.INTEGER);
+				pStatement.setInt(2, labelID);
+				pStatement.executeUpdate();
+				
+				try(PreparedStatement pstmt = conn.prepareStatement(
+						"DELETE" +
+						"FROM label" +
+						"WHERE LabelID = ?;"))
+				{
+					pstmt.setInt(1, labelID);
+					pstmt.executeUpdate();
+					conn.commit();
+					pstmt.close();
+				}
+				pStatement.close();
+				return 0;
+			}
+		catch(SQLException e) {
+			return -1;
+		}
 	}
 	
 	//private helper method for returning a random ID#
