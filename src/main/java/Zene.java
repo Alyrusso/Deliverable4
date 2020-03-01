@@ -341,10 +341,18 @@ public class Zene {
     //prompt for any extra information as needed, then call some jdbc handler method
     private static void processDelete(char lastOption) {
     	String creator, audiofile, album, genre, label;
+    	int x;
         switch (lastOption) {
         	case 'c':
         		System.out.println("Please enter the name of the creator you would like to delete");
         		creator = in.nextLine();
+        		x = query.deleteCreator(creator);
+        		if (x == 0) {
+        			System.out.println("Deletion successful");
+        		}
+        		else {
+        			System.out.println("Unable to find creator");
+        		}
         		break;
         	
         	case 't':
@@ -352,22 +360,51 @@ public class Zene {
         		audiofile = in.nextLine();
         		System.out.println("What is the name of the creator for the track you would like to delete?");
         		creator = in.nextLine();
+        		x = query.deleteTrack(audiofile, creator);
+        		if (x == 0) {
+        			System.out.println("Deletion successful");
+        		}
+        		else {
+        			System.out.println("Unable to find track");
+        		}
         		break;
         	
         	case 'a':
         		System.out.println("Please enter the name of the album you would like to delete");
         		album = in.nextLine();
         		System.out.println("What is the name of the creator for the album you would like to delete?");
+        		creator = in.nextLine();
+        		x = query.deleteAlbum(album, creator);
+        		if (x == 0) {
+        			System.out.println("Deletion successful");
+        		}
+        		else {
+        			System.out.println("Unable to find album");
+        		}
         		break;
         	
         	case 'g':
         		System.out.println("Please enter the name of the genre you would like to delete");
         		genre = in.nextLine();
+        		x = query.deleteGenre(genre);
+        		if (x == 0) {
+        			System.out.println("Deletion successful");
+        		}
+        		else {
+        			System.out.println("Unable to find genre");
+        		}
         		break;
         	
         	case 'l':
         		System.out.println("Please enter the name of the label you would like to delete");
         		label = in.nextLine();
+        		x = query.deleteLabel(label);
+        		if (x == 0) {
+        			System.out.println("Deletion successful");
+        		}
+        		else {
+        			System.out.println("Unable to find label");
+        		}
         		break;
         	
         	case 'b':

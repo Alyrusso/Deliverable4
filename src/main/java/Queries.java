@@ -967,7 +967,27 @@ public class Queries {
 		}
 		return -1;
 	}
-
+	
+	public int deleteCreator(String creator){
+		return 0;
+	}
+	
+	public int deleteAlbum(String album, String creator) {
+		return 0;
+	}
+	
+	public int deleteTrack(String audiofile, String creator) {
+		return 0;
+	}
+	
+	public int deleteGenre(String genre) {
+		return 0;
+	}
+	
+	public int deleteLabel(String label) {
+		return 0;
+	}
+	
 	//private helper method for returning a random ID#
 	private int getID(String s) {
 		return rand.nextInt(Integer.MAX_VALUE);
