@@ -758,7 +758,7 @@ public class Queries {
 			int c_id = getCountryID(c_name);
 			p_stmt.setInt(1, c_id);
 			p_stmt.setString(2, c_name);
-			p_stmt.execute();
+			p_stmt.executeUpdate();
 			conn.commit();
 			System.out.println("Successfully updated country for " + track_name + " to: " + c_name);
 	
