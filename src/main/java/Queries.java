@@ -490,6 +490,53 @@ public class Queries {
 		}
 	}
 
+
+	/**
+	 * Returns a random list of tracks of size given by user.
+	 * 
+	 * @param list_size
+	 */
+	public void getRandomTracks(int list_size){
+		//setup rs and p_stmt
+		//create statement using try-with-resources block to ensure close regardless of success
+		try (PreparedStatement p_stmt = conn.prepareStatement(
+					"SELECT audiofile.TrackID, audiofile.ReleaseName, audiofile.Duration, creator.Name AS Artist, creator.CreatorID"
+					+ " FROM audiofile, createdby, creator"
+					+ " WHERE audiofile.TrackID=createdby.TrackID"
+					+ " AND createdby.CreatorID=creator.CreatorID"
+					+ " ORDER BY RAND()"
+					+ " LIMIT ?"
+					))
+		{
+			
+			p_stmt.setInt(1, list_size);
+	
+			try (ResultSet rs = p_stmt.executeQuery()) {
+				//check for empty/broken result
+				if (!rs.next()) {
+					System.out.println("Error: broken query or erroneous value passed!");
+				} else {
+					//produce result
+					//System.out.println("TrackID:\tReleaseName:\tDuration:\tArtist:\tCreatorID:");
+					System.out.printf("%15s   %-41s   %5s   %-20s   %15s\n", "TrackID", "Track Name", "Drtn.", "Artist", "ArtistID");
+					do {
+						//System.out.println(rs.getInt(1) + "\t" + rs.getString(2) + "\t" + rs.getInt(3) + "\t" + rs.getString(4) + "\t" + rs.getInt(5));
+						String tID = rs.getString("TrackId");
+						String t = abbreviate(rs.getString("ReleaseName"), 40);
+						String d = rs.getString("Duration");
+						String a = abbreviate(rs.getString ("Artist"), 19);
+						String aID = rs.getString("CreatorID");
+						System.out.printf("%15s │ %-41s │ %5s │ %-20s │ %15s\n", tID, t, d, a, aID); 
+					} while(rs.next());
+				}
+			}
+	
+		} catch(Exception exc){
+			exc.printStackTrace();
+		}
+	}
+
+
 	/** Inserts an album into the database.
 	 * @param albumName Name of the album to insert
 	 * @param date  Date the album came out. Format as a number like "20171231". Can be null.

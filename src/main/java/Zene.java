@@ -52,7 +52,9 @@ public class Zene {
         searchOptions.add("n: search by country");
         searchOptions.add("y: list all albums by media type");
         searchOptions.add("e: list tracks by explicit rating");
+        searchOptions.add("r: get a random track list by list size");
         searchOptions.add("b: back to main menu");
+        
         
         updateOptions.add("a: update album");
         updateOptions.add("l: update record label");
@@ -168,6 +170,12 @@ public class Zene {
                 }else{
                     query.getTracksByRating(0);
                 }
+                break;
+
+            case 'r':
+                System.out.print("Enter size of list to be returned: ");
+                Integer size = requestInt();
+                query.getRandomTracks(size);
                 break;
         }
     }
