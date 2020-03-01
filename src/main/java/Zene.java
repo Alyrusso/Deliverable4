@@ -207,7 +207,7 @@ public class Zene {
                     if (trackID > 0) successCount++;
                     System.out.print("Enter a genre for the new track of leave blank for null: ");
                     String genre = getNullableString();
-                    if (genre != null) {
+                    if (genre != null && trackID > 0) {
                         query.addGenreToTrack(trackID, genre);
                     }
                 }
@@ -236,7 +236,7 @@ public class Zene {
                 int trackID = query.insertAudiofile(track, rating, duration, countryID, aID, creator);
                 System.out.print("Enter a genre for the new track of leave blank for no genre: ");
                 String genre = getNullableString();
-                if (genre != null) {
+                if (genre != null && trackID > 0) {
                     query.addGenreToTrack(trackID, genre);
                 }
                 //todo: implement t
