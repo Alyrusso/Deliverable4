@@ -124,13 +124,13 @@ public class Zene {
             //artist search
             case 'c':
                 System.out.print("Enter a creator name to search for: ");
-                query.queryByCreator(in.nextLine());
+                query.queryByCreator(in.nextLine(), false);
                 break;
 
             //title search
             case 't':
                 System.out.print("Enter a title to search for: ");
-                query.queryByAudioTitle(in.nextLine());
+                query.queryByAudioTitle(in.nextLine(), false);
                 break;
 
             //album search
@@ -341,43 +341,58 @@ public class Zene {
     //prompt for any extra information as needed, then call some jdbc handler method
     private static void processDelete(char lastOption) {
     	String creator, audiofile, album, genre, label;
-    	int x;
+    	int x, count;
         switch (lastOption) {
         	case 'c':
-        		System.out.println("Please enter the name of the creator you would like to delete");
+        		System.out.print("Please enter the name of the creator you would like to delete: ");
         		creator = in.nextLine();
-        		x = query.deleteCreator(creator);
-                if (x > 0) {
-                    System.out.println("Successfully deleted " + x + " item" + ((x>1) ? "s" : ""));
-                } else {
-                    System.out.println("Unable to delete requested item");
+        		count = query.queryByCreator(creator, true);
+                if (count > 0) {
+                    System.out.print("Please enter an ID from the list above to delete: ");
+                    int creatorID = requestInt();
+                    x = query.deleteCreator(creatorID);
+                    if (x > 0) {
+                        System.out.println("Successfully deleted " + x + " item" + ((x>1) ? "s" : ""));
+                    } else {
+                        System.out.println("Unable to delete requested item");
+                    }
                 }
         		break;
         	
         	case 't':
-        		System.out.println("Please enter the name of the track you would like to delete");
+        		System.out.print("Please enter the name of the track you would like to delete: ");
         		audiofile = in.nextLine();
-        		x = query.deleteTrack(audiofile);
-                if (x > 0) {
-                    System.out.println("Successfully deleted " + x + " item" + ((x>1) ? "s" : ""));
-                } else {
-                    System.out.println("Unable to delete requested item");
+        		count = query.queryByAudioTitle(audiofile, true);
+                if (count > 0) {
+                    System.out.print("Please enter an ID from the list above to delete: ");
+                    int trackID = requestInt();
+                    x = query.deleteTrack(trackID);
+                    if (x > 0) {
+                        System.out.println("Successfully deleted " + x + " item" + ((x>1) ? "s" : ""));
+                    } else {
+                        System.out.println("Unable to delete requested item");
+                    }
                 }
         		break;
         	
         	case 'a':
         		System.out.print("Please enter the name of the album you would like to delete: ");
         		album = in.nextLine();
-        		x = query.deleteAlbum(album);
-                if (x > 0) {
-                    System.out.println("Successfully deleted " + x + " item" + ((x>1) ? "s" : ""));
-                } else {
-                    System.out.println("Unable to delete requested item");
+        		count = query.queryByAlbumTitle(album, false);
+                if (count > 0) {
+                    System.out.println("Please enter an ID from the list above to delete: ");
+                    int albumID = requestInt();
+                    x = query.deleteAlbum(albumID);
+                    if (x > 0) {
+                        System.out.println("Successfully deleted " + x + " item" + ((x>1) ? "s" : ""));
+                    } else {
+                        System.out.println("Unable to delete requested item");
+                    }
                 }
         		break;
         	
         	case 'g':
-        		System.out.println("Please enter the name of the genre you would like to delete");
+        		System.out.print("Please enter the name of the genre you would like to delete: ");
         		genre = in.nextLine();
         		x = query.deleteGenre(genre);
                 if (x > 0) {
@@ -388,7 +403,7 @@ public class Zene {
         		break;
         	
         	case 'l':
-        		System.out.println("Please enter the name of the label you would like to delete");
+        		System.out.print("Please enter the name of the label you would like to delete: ");
                 label = in.nextLine();
                 x = query.deleteLabel(label);
                 if (x > 0) {
