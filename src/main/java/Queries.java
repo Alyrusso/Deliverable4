@@ -259,7 +259,7 @@ public class Queries {
 						int count = rs.getInt("Count");
 						String boxString = "  ";
 						if (count > 0) boxString = "┌─";
-						System.out.printf("%-5s: "+ boxString +"%-20s │ %7s │ %s │ %s\n",
+						System.out.printf("%-5s:   "+ boxString +"%-20s │ %7s │ %s │ %s\n",
 								"Album",
 								rs.getString("AlbumName"),
 								nullable(rs.getString("Duration")),
@@ -384,7 +384,7 @@ public class Queries {
 				} else {
 					//produce result
 					do {
-						System.out.printf("Album: ┌─%-20s   %7s   %8s   %s   %s\n",
+						System.out.printf("Album:   ┌─%-20s   %7s   %8s   %s   %s\n",
 								rs.getString("AlbumName"),
 								nullable(rs.getString("Duration")),
 								rs.getString("MediaType"),
@@ -1204,35 +1204,23 @@ public class Queries {
 	 */
 	public int deleteLabel(String label) {
 		int labelID = getRecordLabelID(label);
+		int count = 0;
 		if(labelID == 0 || labelID == -1) {
-			return -1;
-		}
-		try(PreparedStatement pStatement = conn.prepareStatement(
-					"UPDATE album" +
-					" SET LabelID = ?" +
+			System.out.println("Label " + label + " not found");
+		} else {
+			try(PreparedStatement pstmt = conn.prepareStatement(
+					"DELETE" +
+					" FROM recordlabel" +
 					" WHERE LabelID = ?;"))
 			{
-				pStatement.setNull(1, Types.INTEGER);
-				pStatement.setInt(2, labelID);
-				pStatement.executeUpdate();
-				
-				try(PreparedStatement pstmt = conn.prepareStatement(
-						"DELETE" +
-						" FROM label" +
-						" WHERE LabelID = ?;"))
-				{
-					pstmt.setInt(1, labelID);
-					pstmt.executeUpdate();
-					conn.commit();
-					pstmt.close();
-				}
-				pStatement.close();
-				return 0;
+				pstmt.setInt(1, labelID);
+				count = pstmt.executeUpdate();
+				conn.commit();
+			} catch(SQLException e) {
+				e.printStackTrace();
 			}
-		catch(SQLException e) {
-			e.printStackTrace();
-			return -1;
 		}
+		return count;
 	}
 	
 	//private helper method for returning a random ID#
