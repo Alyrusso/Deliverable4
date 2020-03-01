@@ -265,7 +265,7 @@ public class Zene {
                 String t_name = in.nextLine();
                 System.out.print("Enter new country name to associate with track: ");
                 String c_name = in.nextLine();
-                query.updateCountryIDaf(track_name, c_name);
+                query.updateCountryIDaf(t_name, c_name);
                 break;
 
             default:

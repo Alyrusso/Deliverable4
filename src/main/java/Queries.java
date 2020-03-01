@@ -751,17 +751,11 @@ public class Queries {
 	 * @param c_name
 	 */
 	public void updateCountryIDaf(String track_name, String c_name){
-    
-		//convert country name to contryID
-		try{
-			int c_id = getCountryID(c_name);
-		}catch(Exception exc){
-			exc.printStackTrace();
-		}
 	
 		try(PreparedStatement p_stmt = conn.prepareStatement(
 			"UPDATE adb.audiofile SET CountryID=? WHERE audiofile.ReleaseName=?;"
 		)){
+			int c_id = getCountryID(c_name);
 			p_stmt.setInt(1, c_id);
 			p_stmt.setString(2, c_name);
 			p_stmt.execute();
