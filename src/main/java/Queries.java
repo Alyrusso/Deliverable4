@@ -981,7 +981,29 @@ public class Queries {
 	}
 	
 	public int deleteGenre(String genre) {
-		return 0;
+		try(PreparedStatement pStatement = conn.prepareStatement(
+				"DELETE" +
+				"FROM ingenre" +
+				"WHERE GenreID = ?;"))
+		{
+			pStatement.setString(1, genre);
+			pStatement.executeUpdate();
+			try(PreparedStatement pstmt = conn.prepareStatement(
+				"DELETE" +
+				"FROM genre" +
+				"WHERE GenreID = ?;"))
+			{
+				pstmt.setString(1, genre);
+				pstmt.executeUpdate();
+				conn.close();
+				pstmt.close();
+			}
+			pStatement.close();
+			return 0;
+		}
+		catch(SQLException e) {
+			return -1;
+		}
 	}
 	
 	public int deleteLabel(String label) {
@@ -990,7 +1012,7 @@ public class Queries {
 			return -1;
 		}
 		try(PreparedStatement pStatement = conn.prepareStatement(
-					"UPDATE adb.album" +
+					"UPDATE album" +
 					"SET LabelID = ?" +
 					"WHERE LabelID = ?;"))
 			{
