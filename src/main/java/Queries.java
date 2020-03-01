@@ -968,6 +968,12 @@ public class Queries {
 		return -1;
 	}
 	
+	/**
+	 * Deletes Creator and all audiofiles by the creator
+	 * 
+	 * @param creator
+	 * @return
+	 */
 	public int deleteCreator(String creator) {
 		try(PreparedStatement pStatement = conn.prepareStatement(
 				"SELECT CreatorID" +
@@ -1015,6 +1021,12 @@ public class Queries {
 		}
 	}
 	
+	/**
+	 * Deletes album and all audiofiles on the album
+	 * 
+	 * @param album
+	 * @return
+	 */
 	public int deleteAlbum(String album) {
 		try(PreparedStatement pStatement = conn.prepareStatement(
 				"SELECT AlbumID" +
@@ -1061,6 +1073,12 @@ public class Queries {
 		}
 	}
 	
+	/**
+	 * Deletes an audiofile
+	 * 
+	 * @param audiofile
+	 * @return
+	 */
 	public int deleteTrack(String audiofile) {
 		try(PreparedStatement pStatement = conn.prepareStatement(
 				"SELECT TrackID" +
@@ -1111,6 +1129,12 @@ public class Queries {
 		}
 	}
 	
+	/**
+	 * Deletes a genre
+	 * 
+	 * @param genre
+	 * @return
+	 */
 	public int deleteGenre(String genre) {
 		try(PreparedStatement pStatement = conn.prepareStatement(
 				"DELETE" +
@@ -1137,6 +1161,12 @@ public class Queries {
 		}
 	}
 	
+	/**
+	 * Deletes a label
+	 * 
+	 * @param label
+	 * @return
+	 */
 	public int deleteLabel(String label) {
 		int labelID = getRecordLabelID(label);
 		if(labelID == 0 || labelID == -1) {
