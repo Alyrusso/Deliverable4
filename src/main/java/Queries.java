@@ -968,8 +968,51 @@ public class Queries {
 		return -1;
 	}
 	
-	public int deleteCreator(String creator){
-		return 0;
+	public int deleteCreator(String creator) {
+		try(PreparedStatement pStatement = conn.prepareStatement(
+				"SELECT CreatorID" +
+				"FROM creator" +
+				"WHERE Name = ?;"))
+		{
+			pStatement.setString(1, creator);
+			try(ResultSet rs = pStatement.executeQuery()){
+				if(!rs.next()) {
+					return -1;
+				}
+				else {
+					int creatorID = rs.getInt(1);
+					try(PreparedStatement pstmt = conn.prepareStatement(
+							"SELECT ReleaseName" +
+							"FROM audiofile, createdby" +
+							"WHERE audiofile.TrackID=createdby.TrackID" +
+							"AND CreatorID = ?;"))
+					{
+						pstmt.setInt(1, creatorID);
+						try(ResultSet results = pstmt.executeQuery()){
+							do {
+								deleteTrack(results.getString("ReleaseName"));
+							}while(results.next());
+						}
+						pstmt.close();
+					}
+					try(PreparedStatement p_stmt = conn.prepareStatement(
+							"DELETE" +
+							"FROM creator" +
+							"WHERE CreatorID = ?;"))
+					{
+						p_stmt.setInt(1, creatorID);
+						p_stmt.executeUpdate();
+						conn.commit();
+						p_stmt.close();
+					}
+				}
+			}
+			pStatement.close();
+			return 0;
+		}
+		catch(SQLException e) {
+			return -1;
+		}
 	}
 	
 	public int deleteAlbum(String album) {
@@ -991,10 +1034,11 @@ public class Queries {
 							"WHERE AlbumID = ?;"))
 					{
 						pstmt.setInt(1, albumID);
-						ResultSet results = (pstmt.executeQuery());
-						do{
-							deleteTrack(results.getString("ReleaseName"));
-						}while(results.next());
+						try(ResultSet results = (pstmt.executeQuery())){
+							do{
+								deleteTrack(results.getString("ReleaseName"));
+							}while(results.next());
+						}
 						pstmt.close();
 					}
 					try(PreparedStatement p_stmt = conn.prepareStatement(
@@ -1041,7 +1085,7 @@ public class Queries {
 					}
 					try(PreparedStatement p_stmt = conn.prepareStatement(
 							"DELETE" +
-							"FROM createdBy" +
+							"FROM createdby" +
 							"WHERE TrackID = ?;"))
 					{
 						p_stmt.setInt(1, trackID);
