@@ -358,9 +358,7 @@ public class Zene {
         	case 't':
         		System.out.println("Please enter the name of the track you would like to delete");
         		audiofile = in.nextLine();
-        		System.out.println("What is the name of the creator for the track you would like to delete?");
-        		creator = in.nextLine();
-        		x = query.deleteTrack(audiofile, creator);
+        		x = query.deleteTrack(audiofile);
         		if (x == 0) {
         			System.out.println("Deletion successful");
         		}

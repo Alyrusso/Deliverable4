@@ -976,8 +976,54 @@ public class Queries {
 		return 0;
 	}
 	
-	public int deleteTrack(String audiofile, String creator) {
-		return 0;
+	public int deleteTrack(String audiofile) {
+		try(PreparedStatement pStatement = conn.prepareStatement(
+				"SELECT TrackID" +
+				"FROM audiofile" +
+				"WHERE ReleaseName = ?;"))
+		{
+			pStatement.setString(1, audiofile);
+			try(ResultSet rs = pStatement.executeQuery()){
+				if(!rs.next()) {
+					return -1;
+				}
+				else {
+					int trackID = rs.getInt(1);
+					try(PreparedStatement pstmt = conn.prepareStatement(
+							"DELETE" +
+							"FROM ingenre" +
+							"WHERE TrackID = ?;"))
+					{
+						pstmt.setInt(1, trackID);
+						pstmt.executeUpdate();
+						pstmt.close();
+					}
+					try(PreparedStatement p_stmt = conn.prepareStatement(
+							"DELETE" +
+							"FROM createdBy" +
+							"WHERE TrackID = ?;"))
+					{
+						p_stmt.setInt(1, trackID);
+						p_stmt.executeUpdate();
+						p_stmt.close();
+					}
+					try(PreparedStatement preparedS = conn.prepareStatement(
+							"DELETE" +
+							"FROM audiofile" +
+							"WHERE TrackID = ?"))
+					{
+						preparedS.setInt(1, trackID);
+						preparedS.executeUpdate();
+						preparedS.close();
+						conn.commit();
+						return 0;
+					}
+				}
+			}
+		}
+		catch(SQLException e) {
+			return -1;
+		}
 	}
 	
 	public int deleteGenre(String genre) {
@@ -995,7 +1041,7 @@ public class Queries {
 			{
 				pstmt.setString(1, genre);
 				pstmt.executeUpdate();
-				conn.close();
+				conn.commit();
 				pstmt.close();
 			}
 			pStatement.close();
