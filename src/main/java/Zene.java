@@ -75,7 +75,7 @@ public class Zene {
         try (Connection conn = DriverManager.getConnection(url, username, password)) {
             System.out.println("connected!");
             conn.setAutoCommit(false); //do we want autocommit on/off?
-            query = new Queries(conn);
+            query = new Queries(conn, in);
 
             //menu loop
             char lastOption = '\0';
@@ -136,7 +136,7 @@ public class Zene {
             //album search
             case 'a':
                 System.out.print("Enter an album name to search for: ");
-                query.queryByAlbumTitle(in.nextLine());
+                query.queryByAlbumTitle(in.nextLine(), true);
                 break;
 
                 //genre search
@@ -351,60 +351,55 @@ public class Zene {
         		System.out.println("Please enter the name of the creator you would like to delete");
         		creator = in.nextLine();
         		x = query.deleteCreator(creator);
-        		if (x == 0) {
-        			System.out.println("Deletion successful");
-        		}
-        		else {
-        			System.out.println("Unable to find creator");
-        		}
+                if (x > 0) {
+                    System.out.println("Successfully deleted " + x + " item" + ((x>1) ? "s" : ""));
+                } else {
+                    System.out.println("Unable to delete requested item");
+                }
         		break;
         	
         	case 't':
         		System.out.println("Please enter the name of the track you would like to delete");
         		audiofile = in.nextLine();
         		x = query.deleteTrack(audiofile);
-        		if (x == 0) {
-        			System.out.println("Deletion successful");
-        		}
-        		else {
-        			System.out.println("Unable to find track");
-        		}
+                if (x > 0) {
+                    System.out.println("Successfully deleted " + x + " item" + ((x>1) ? "s" : ""));
+                } else {
+                    System.out.println("Unable to delete requested item");
+                }
         		break;
         	
         	case 'a':
-        		System.out.println("Please enter the name of the album you would like to delete");
+        		System.out.print("Please enter the name of the album you would like to delete: ");
         		album = in.nextLine();
         		x = query.deleteAlbum(album);
-        		if (x == 0) {
-        			System.out.println("Deletion successful");
-        		}
-        		else {
-        			System.out.println("Unable to find album");
-        		}
+                if (x > 0) {
+                    System.out.println("Successfully deleted " + x + " item" + ((x>1) ? "s" : ""));
+                } else {
+                    System.out.println("Unable to delete requested item");
+                }
         		break;
         	
         	case 'g':
         		System.out.println("Please enter the name of the genre you would like to delete");
         		genre = in.nextLine();
         		x = query.deleteGenre(genre);
-        		if (x == 0) {
-        			System.out.println("Deletion successful");
-        		}
-        		else {
-        			System.out.println("Unable to find genre");
-        		}
+                if (x > 0) {
+                    System.out.println("Successfully deleted " + x + " item" + ((x>1) ? "s" : ""));
+                } else {
+                    System.out.println("Unable to delete requested item");
+                }
         		break;
         	
         	case 'l':
         		System.out.println("Please enter the name of the label you would like to delete");
-        		label = in.nextLine();
-        		x = query.deleteLabel(label);
-        		if (x == 0) {
-        			System.out.println("Deletion successful");
-        		}
-        		else {
-        			System.out.println("Unable to find label");
-        		}
+                label = in.nextLine();
+                x = query.deleteLabel(label);
+                if (x > 0) {
+                    System.out.println("Successfully deleted " + x + " item" + ((x>1) ? "s" : ""));
+                } else {
+                    System.out.println("Unable to delete requested item");
+                }
         		break;
         	
         	case 'b':
