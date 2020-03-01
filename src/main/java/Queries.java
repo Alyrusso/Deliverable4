@@ -596,7 +596,7 @@ public class Queries {
 	 * @param countryID Country code for the file. Can be null.
 	 * @return trackID File code for the inserted track.
 	 */
-	public int insertAudiofile(String name, Integer rating, Integer duration, Integer countryID, Integer albID){
+	public int insertAudiofile(String name, Integer rating, Integer duration, Integer countryID, Integer albID, String creator){
 		int trackID = getID(name);
 		//use try-with-resources block to ensure close regardless of success
 		try (PreparedStatement p_stmt = conn.prepareStatement("INSERT INTO adb.audiofile "
@@ -616,6 +616,37 @@ public class Queries {
             //excute insert statement and commit result
             p_stmt.execute();
             conn.commit();
+            
+            Scanner in = new Scanner(System.in);;
+            int crtID = 0;
+            //insert trackID and creatorID into createdby table
+            try (PreparedStatement pstmt = conn.prepareStatement(
+    				"SELECT CreatorID " +
+    				"FROM creator " +
+    				"WHERE Name = ?;")){
+    			pstmt.setString(1, creator);
+    			try (ResultSet rs = pstmt.executeQuery()) {
+    				if(!rs.next()) {
+    					System.out.println("That creator was not found. Would you like to add new creator: " + creator + "? (q to quit, or y to add new creator: ");
+    					String answer = in.nextLine();
+    					if(answer.equals("y"))
+    						crtID = insertCreator(creator);
+    					else
+    						return 0;
+    				}
+    				else
+    					crtID = rs.getInt(1);
+    			}
+    		}
+            try (PreparedStatement pstmt2 = conn.prepareStatement("INSERT INTO adb.createdby "
+                    + "(TrackID, CreatorID) "
+                    + " VALUES (?, ?);")){
+            	 pstmt2.setInt(1, trackID);
+                 pstmt2.setInt(2, crtID);
+                 //execute
+                 pstmt2.execute();
+                 conn.commit();
+            }
             System.out.println("New Track " + name + " added successfully with ID: " + trackID);
 
         } catch(SQLException sexc) {
@@ -808,7 +839,7 @@ public class Queries {
 	}
 	
 	/**
-	 * updateLabelDate allows for changing the date of an existing label
+	 * updateLabelDate allows for changing the founding date of an existing label
 	 * @param label name of label to update
 	 * @param date new founding date of label
 	 */
