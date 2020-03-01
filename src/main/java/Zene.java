@@ -40,6 +40,7 @@ public class Zene {
         insertOptions.add("t: add new audio file");
         insertOptions.add("a: add new album");
         insertOptions.add("g: add new genre");
+        insertOptions.add("l: add new record label");
         insertOptions.add("n: add new country");
         insertOptions.add("b: back to main menu");
 
@@ -47,13 +48,15 @@ public class Zene {
         searchOptions.add("t: search by title");
         searchOptions.add("a: search by album");
         searchOptions.add("g: search by genre");
-        searchOptions.add("l: search by label");
+        searchOptions.add("l: search by record label");
         searchOptions.add("n: search by country");
         searchOptions.add("y: list all albums by media type");
         searchOptions.add("e: list tracks by explicit rating");
         searchOptions.add("b: back to main menu");
         
-        updateOptions.add("g: update genre");
+        updateOptions.add("a: update album");
+        updateOptions.add("l: update record label");
+        updateOptions.add("g: update genre description");
         updateOptions.add("c: update audiofile country");
         updateOptions.add("b: back to main menu");
 
@@ -217,13 +220,22 @@ public class Zene {
                 //todo: implement t
                 break;
 
+              //add new record label
+            case 'l':
+            	System.out.println("Enter name of new Record Label: ");
+            	String labelName = in.nextLine();
+            	System.out.print("Enter founding date as yyyymmdd (eg. 20190523) or leave blank for null: ");
+                String foundDate = getNullableString();
+                System.out.print("Enter country ID or leave blank for null ('?' for list of codes): ");
+                Integer rlCountryID = getNullableInteger("country");
+            	query.insertRecordLabel(labelName, foundDate, rlCountryID);
+                break;
+                
             //add new creator
             case 'c':
             	System.out.println("Enter name of new Creator: ");
             	String creatorName = in.nextLine();
             	query.insertCreator(creatorName);
-            	
-                //todo implement insert creator
                 break;
              
             //add new genre
@@ -251,6 +263,47 @@ public class Zene {
   //switch for all the various search options that may be called
     private static void processUpdate(char lastOption) {
         switch (lastOption) {
+        
+	        //label update
+	        case 'l':
+	            System.out.print("Enter the record label name to update: ");
+	            String lName = in.nextLine();
+	            System.out.println("d: founding date"
+	            		+ "\nc: country"
+	            		+ "\nWhich would you like to update?");
+	            String update = in.nextLine();
+	            if(update.equals("d")) {
+	            	System.out.print("Enter the Founding Date of the label in yyyymmdd format or leave blank for null: ");
+	            	String lDate = getNullableString();
+	            	query.updateLabelDate(lName, lDate);
+	            }
+	            else if(update.equals("c")) {
+	            	System.out.print("Enter country ID or leave blank for null ('?' for list of codes): ");
+	            	Integer lCountry = getNullableInteger("country");
+	            	query.updateLabelCountry(lName, lCountry);
+	            }
+	            break;
+	          
+	        //album update
+	        case 'a':
+	            System.out.print("Enter the album name to update: ");
+	            String aName = in.nextLine();
+	            System.out.println("d: release date"
+	            		+ "\nl: record label"
+	            		+ "\nWhich would you like to update?");
+	            String aUpdate = in.nextLine();
+	            if(aUpdate.equals("d")) {
+	            	System.out.print("Enter the release date of the album in yyyymmdd format or leave blank for null: ");
+	            	String rDate = getNullableString();
+	            	query.updateAlbumRD(aName, rDate);
+	            }
+	            else if(aUpdate.equals("l")) {
+	            	System.out.print("Enter record label for album or leave blank for null: ");
+	            	String aLabel = getNullableString();
+	            	query.updateAlbumRL(aName, aLabel);
+	            }
+	            break;
+            
             //genre update
             case 'g':
                 System.out.print("Enter the genre name to update: ");
@@ -260,6 +313,7 @@ public class Zene {
                 query.updateGenre(name, descrip);
                 break;
 
+            //audio file country update
             case 'c':
                 System.out.print("Enter track name: ");
                 String t_name = in.nextLine();
