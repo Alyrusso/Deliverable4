@@ -193,6 +193,8 @@ public class Zene {
                 for (int i=0; i < trackCount; ++i) {
                     System.out.print("Enter name for new track: ");
                     String track = in.nextLine();
+                    System.out.print("Enter creator for new track: ");
+                    String trackCreator = in.nextLine();
                     System.out.print("Enter track duration in seconds: ");
                     Integer duration = requestInt();
                     System.out.print("Enter y if track is explicit, anything else for clean: ");
@@ -201,7 +203,7 @@ public class Zene {
                     Integer countryID = getNullableInteger("country");
 
                     //attempt adding track to db
-                    int trackID = query.insertAudiofile(track, rating, duration, countryID, albumID);
+                    int trackID = query.insertAudiofile(track, rating, duration, countryID, albumID, trackCreator);
                     if (trackID > 0) successCount++;
                 }
                 if (successCount > 0) System.out.println("Successfully added " + successCount + " tracks to album " + albumName);
@@ -216,6 +218,8 @@ public class Zene {
                 if (cont != 'y') break;
                 System.out.print("Enter album ID for new track: ");
                 Integer aID = requestInt();
+                System.out.print("Enter creator for new track: ");
+                String creator = in.nextLine();
                 System.out.print("Enter name for new track: ");
                 String track = in.nextLine();
                 System.out.print("Enter track duration in seconds: ");
@@ -224,7 +228,7 @@ public class Zene {
                 Integer rating = (getNullableChar() == 'y') ? 1 : 0;
                 System.out.print("Enter country ID or leave blank for null ('?' for list of codes): ");
                 Integer countryID = getNullableInteger("country");
-                query.insertAudiofile(track, rating, duration, countryID, aID);
+                query.insertAudiofile(track, rating, duration, countryID, aID, creator);
 
                 //todo: implement t
                 break;
