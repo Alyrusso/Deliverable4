@@ -59,6 +59,15 @@ public class Zene {
         updateOptions.add("g: update genre description");
         updateOptions.add("c: update audiofile country");
         updateOptions.add("b: back to main menu");
+        
+        deleteOptions.add("c: delete a creator");
+        deleteOptions.add("t: delete a title");
+        deleteOptions.add("a: delete an album");
+        deleteOptions.add("g: delete a genre");
+        deleteOptions.add("l: delete a label");
+        deleteOptions.add("b: back to main menu");
+        
+       
 
 
         //use try-with-resources block to ensure close regardless of success
@@ -331,8 +340,42 @@ public class Zene {
     //switch for all the various delete options that may be called
     //prompt for any extra information as needed, then call some jdbc handler method
     private static void processDelete(char lastOption) {
+    	String creator, audiofile, album, genre, label;
         switch (lastOption) {
-
+        	case 'c':
+        		System.out.println("Please enter the name of the creator you would like to delete");
+        		creator = in.nextLine();
+        		break;
+        	
+        	case 't':
+        		System.out.println("Please enter the name of the track you would like to delete");
+        		audiofile = in.nextLine();
+        		System.out.println("What is the name of the creator for the track you would like to delete?");
+        		creator = in.nextLine();
+        		break;
+        	
+        	case 'a':
+        		System.out.println("Please enter the name of the album you would like to delete");
+        		album = in.nextLine();
+        		System.out.println("What is the name of the creator for the album you would like to delete?");
+        		break;
+        	
+        	case 'g':
+        		System.out.println("Please enter the name of the genre you would like to delete");
+        		genre = in.nextLine();
+        		break;
+        	
+        	case 'l':
+        		System.out.println("Please enter the name of the label you would like to delete");
+        		label = in.nextLine();
+        		break;
+        	
+        	case 'b':
+        		break;
+        		
+        	default:
+        		System.out.println("Unrecognized menu option (" + lastOption + "). Please try again.");
+        		break;
         }
     }
 
