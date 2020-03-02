@@ -1,10 +1,7 @@
 package main.java;
 
 import java.sql.*;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Entry point and menu handler for group 17 music database application
@@ -55,7 +52,6 @@ public class Zene {
         searchOptions.add("r: get a random track list by list size");
         searchOptions.add("b: back to main menu");
         
-        
         updateOptions.add("a: update album");
         updateOptions.add("l: update record label");
         updateOptions.add("g: update genre description");
@@ -68,8 +64,6 @@ public class Zene {
         deleteOptions.add("g: delete a genre");
         deleteOptions.add("l: delete a label");
         deleteOptions.add("b: back to main menu");
-        
-       
 
 
         //use try-with-resources block to ensure close regardless of success
@@ -121,7 +115,6 @@ public class Zene {
 
     //switch for all the various search options that may be called
     private static void processSearch(char lastOption) {
-        String albumName, creatorName, titleName;
         switch (lastOption) {
             //artist search
             case 'c':
@@ -174,7 +167,7 @@ public class Zene {
 
             case 'r':
                 System.out.print("Enter size of list to be returned: ");
-                Integer size = requestInt();
+                int size = requestInt();
                 query.getRandomTracks(size);
                 break;
         }
@@ -195,32 +188,36 @@ public class Zene {
                 System.out.print("Enter a record label name or leave blank for null: ");
                 String label = getNullableString();
                 int albumID = query.insertAlbum(albumName, date, label, mediaType);
-                System.out.print("How many tracks would you like to add: ");
-                int trackCount = requestInt();
-                int successCount = 0;
-                for (int i=0; i < trackCount; ++i) {
-                    System.out.print("Enter name for new track: ");
-                    String track = in.nextLine();
-                    System.out.print("Enter creator for new track: ");
-                    String trackCreator = in.nextLine();
-                    System.out.print("Enter track duration in seconds: ");
-                    Integer duration = requestInt();
-                    System.out.print("Enter y if track is explicit, anything else for clean: ");
-                    Integer rating = (getNullableChar() == 'y') ? 1 : 0;
-                    System.out.print("Enter country ID or leave blank for null ('?' for list of codes): ");
-                    Integer countryID = getNullableInteger("country");
+                if (albumID > 0) {
+                    System.out.print("How many tracks would you like to add: ");
+                    int trackCount = requestInt();
+                    int successCount = 0;
+                    for (int i=0; i < trackCount; ++i) {
+                        System.out.print("Enter name for new track: ");
+                        String track = in.nextLine();
+                        System.out.print("Enter creator for new track: ");
+                        String trackCreator = in.nextLine();
+                        System.out.print("Enter track duration in seconds: ");
+                        Integer duration = requestInt();
+                        System.out.print("Enter y if track is explicit, anything else for clean: ");
+                        Integer rating = (getNullableChar() == 'y') ? 1 : 0;
+                        System.out.print("Enter country ID or leave blank for null ('?' for list of codes): ");
+                        Integer countryID = getNullableInteger("country");
 
-                    //attempt adding track to db
-                    int trackID = query.insertAudiofile(track, rating, duration, countryID, albumID, trackCreator);
-                    if (trackID > 0) successCount++;
-                    System.out.print("Enter a genre for the new track of leave blank for null: ");
-                    String genre = getNullableString();
-                    if (genre != null && trackID > 0) {
-                        query.addGenreToTrack(trackID, genre);
+                        //attempt adding track to db
+                        int trackID = query.insertAudiofile(track, rating, duration, countryID, albumID, trackCreator);
+                        if (trackID > 0) {
+                            successCount++;
+                            System.out.print("Enter a genre for the new track of leave blank for null: ");
+                            String genre = getNullableString();
+                            if (genre != null) {
+                                query.addGenreToTrack(trackID, genre);
+                            }
+                        }
                     }
+                    if (successCount > 0) System.out.println("Successfully added " + successCount + " tracks to album " + albumName);
+                    if (successCount != trackCount) System.out.println(trackCount - successCount + " tracks could not be added.");
                 }
-                if (successCount > 0) System.out.println("Successfully added " + successCount + " tracks to album " + albumName);
-                if (successCount != trackCount) System.out.println(trackCount - successCount + " tracks could not be added.");
                 break;
 
             //add new audio file
@@ -242,12 +239,13 @@ public class Zene {
                 System.out.print("Enter country ID or leave blank for null ('?' for list of codes): ");
                 Integer countryID = getNullableInteger("country");
                 int trackID = query.insertAudiofile(track, rating, duration, countryID, aID, creator);
-                System.out.print("Enter a genre for the new track of leave blank for no genre: ");
-                String genre = getNullableString();
-                if (genre != null && trackID > 0) {
-                    query.addGenreToTrack(trackID, genre);
+                if (trackID > 0) {
+                    System.out.print("Enter a genre for the new track of leave blank for no genre: ");
+                    String genre = getNullableString();
+                    if (genre != null) {
+                        query.addGenreToTrack(trackID, genre);
+                    }
                 }
-                //todo: implement t
                 break;
 
               //add new record label
@@ -298,9 +296,9 @@ public class Zene {
 	        case 'l':
 	            System.out.print("Enter the record label name to update: ");
 	            String lName = in.nextLine();
-	            System.out.println("d: founding date"
+	            System.out.print("d: founding date"
 	            		+ "\nc: country"
-	            		+ "\nWhich would you like to update?");
+	            		+ "\nWhich would you like to update: ");
 	            String update = in.nextLine();
 	            if(update.equals("d")) {
 	            	System.out.print("Enter the Founding Date of the label in yyyymmdd format or leave blank for null: ");
@@ -318,20 +316,28 @@ public class Zene {
 	        case 'a':
 	            System.out.print("Enter the album name to update: ");
 	            String aName = in.nextLine();
-	            System.out.println("d: release date"
-	            		+ "\nl: record label"
-	            		+ "\nWhich would you like to update?");
-	            String aUpdate = in.nextLine();
-	            if(aUpdate.equals("d")) {
-	            	System.out.print("Enter the release date of the album in yyyymmdd format or leave blank for null: ");
-	            	String rDate = getNullableString();
-	            	query.updateAlbumRD(aName, rDate);
-	            }
-	            else if(aUpdate.equals("l")) {
-	            	System.out.print("Enter record label for album or leave blank for null: ");
-	            	String aLabel = getNullableString();
-	            	query.updateAlbumRL(aName, aLabel);
-	            }
+                Map<Integer, Integer> results = query.queryByAlbumTitle(aName, false);
+	            if (results != null && results.size() > 0) {
+                    Integer albumID = null;
+                    while (albumID == null) {
+                        System.out.print("Please enter a number from the list above to edit: ");
+                        albumID = results.get(requestInt());
+                    }
+                    System.out.print("d: release date"
+                            + "\nl: record label"
+                            + "\nWhich would you like to update: ");
+                    String aUpdate = in.nextLine();
+                    if(aUpdate.equals("d")) {
+                        System.out.print("Enter the release date of the album in yyyymmdd format or leave blank for null: ");
+                        String rDate = getNullableString();
+                        query.updateAlbumRD(albumID, rDate);
+                    }
+                    else if(aUpdate.equals("l")) {
+                        System.out.print("Enter record label for album or leave blank for null: ");
+                        String aLabel = getNullableString();
+                        query.updateAlbumRL(aName, aLabel);
+                    }
+                }
 	            break;
             
             //genre update
@@ -399,10 +405,13 @@ public class Zene {
         	case 'a':
         		System.out.print("Please enter the name of the album you would like to delete: ");
         		album = in.nextLine();
-        		count = query.queryByAlbumTitle(album, false);
-                if (count > 0) {
-                    System.out.println("Please enter an ID from the list above to delete: ");
-                    int albumID = requestInt();
+        		Map<Integer, Integer> results = query.queryByAlbumTitle(album, false);
+                if (results != null && results.size() > 0) {
+                    Integer albumID = null;
+                    while (albumID == null) {
+                        System.out.print("Please enter a number from the list above to delete: ");
+                        albumID = results.get(requestInt());
+                    }
                     x = query.deleteAlbum(albumID);
                     if (x > 0) {
                         System.out.println("Successfully deleted " + x + " item" + ((x>1) ? "s" : ""));

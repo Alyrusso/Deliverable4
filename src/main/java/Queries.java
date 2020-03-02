@@ -2,9 +2,7 @@
 package main.java;
 
 import java.sql.*;
-import java.util.Objects;
-import java.util.Random;
-import java.util.Scanner;
+import java.util.*;
 
 
 public class Queries {
@@ -117,10 +115,10 @@ public class Queries {
 	 * country if applicable. It then prints track info for tracks in album
 	 * @param title - title of album queried
 	 * @param printTracks Whether the query should print a list of tracks.
-	 * @return The number of albums found by the specified name.
+	 * @return A map of index+albumID pairs
 	 */
-	public int queryByAlbumTitle(String title, boolean printTracks) {
-		int aCount = 0;
+	public Map<Integer, Integer> queryByAlbumTitle(String title, boolean printTracks) {
+		Map<Integer, Integer> results = null;
 		//create statement using try-with-resources block to ensure close regardless of success
 		try (PreparedStatement pstmt = conn.prepareStatement(
 				"SELECT album.AlbumID, AlbumName, MediaType, date(ReleaseDate) AS ReleaseDate, recordlabel.Name AS Label, trim(LEADING ':' FROM trim(LEADING '0' FROM sec_to_time(SUM(Duration)))) AS Duration, count(audiofile.TrackID) AS Count" +
@@ -141,31 +139,36 @@ public class Queries {
 					System.out.println ("No results found for " + title);
 				} else {
 					//print album info
+					results = new HashMap<>();
+					int i = 0;
 					do {
-						aCount++;
-						int count = rs.getInt("Count");
-						String prefix = (printTracks) ? "Album: " : rs.getString("album.AlbumID");
-						String boxString = "  ";
-						if (count > 0 && printTracks) boxString = "┌─";
+						i++;
 
-						System.out.printf("%-9s" + boxString + "%-20s │ %7s │ %8s │ %s\n",
+						int albumCount = rs.getInt("Count");
+						int albumID = rs.getInt("album.AlbumID");
+						results.put(i, albumID);
+						String prefix = (printTracks) ? "Album: " : "  " + i + ": ";
+						String boxString = "  ";
+						if (albumCount > 0 && printTracks) boxString = "┌─";
+
+						System.out.printf("%-7s" + boxString + "%-20s │ %7s │ %8s │ %10s | %s\n",
 								prefix,
 								rs.getString("AlbumName"),
 								nullable(rs.getString("Duration")),
 								rs.getString("MediaType"),
-								nullable(rs.getString("Label")),
-								nullable(rs.getString("ReleaseDate"))
+								nullable(rs.getString("ReleaseDate")),
+								nullable(rs.getString("Label"))
 						);
 
 						//print tracks for each album, if any are present
-						if (printTracks) queryTracksByAlbumID(rs.getInt("AlbumID"), count);
+						if (printTracks) queryTracksByAlbumID(rs.getInt("AlbumID"), albumCount);
 					} while(rs.next());
 				}
 			}
 		} catch (Exception exc){
 			System.out.println("Error when searching for album \"" + title + "\": " + exc.getMessage());
 		}
-		return aCount;
+		return results;
 	}
 
 	//called from any query that needs to print track info per album.
@@ -186,7 +189,7 @@ public class Queries {
 					System.out.println ("         No tracks found for album ID: " + albumID + "\n");
 				} else {
 					String boxShape = "├─";
-					System.out.printf("         │ %-20s   %7s   %8s   %s\n", "      -Title-", "-Drtn-", "-Rating-", "-Creator-");
+					System.out.printf("       │ %-20s   %7s   %8s   %s\n", "      -Title-", "-Drtn-", "-Rating-", "-Creator-");
 					int c = 0;
 					do {
 						if (++c == count) boxShape = "└─";
@@ -194,7 +197,7 @@ public class Queries {
 						String rating = (rs.getInt("Explicit") == 0) ? "Clean" : "Explicit"; //convert 0/1 to string
 						String duration = rs.getString("Duration");
 						String title = abbreviate(rs.getString("Title"), 20);
-						System.out.printf("         " + boxShape + "%-20s │ %7s │ %8s │ %-20s\n", title, duration, rating, creator);
+						System.out.printf("       %2s%-20s │ %7s │ %8s │ %-20s\n", boxShape, title, duration, rating, creator);
 					} while (rs.next());
 					System.out.println();
 				}
@@ -236,7 +239,7 @@ public class Queries {
 								abbreviate(rs.getString("creator.Name"), 20),
 								rs.getString("Duration"),
 								abbreviate(rs.getString("AlbumName"), 20),
-								rs.getString("ReleaseDate"));
+								nullable(rs.getString("ReleaseDate")));
 					} while(rs.next());
 				}
 			}
@@ -270,7 +273,7 @@ public class Queries {
 						int count = rs.getInt("Count");
 						String boxString = "  ";
 						if (count > 0) boxString = "┌─";
-						System.out.printf("%-5s:   "+ boxString +"%-20s │ %7s │ %s │ %s\n",
+						System.out.printf("%-5s: "+ boxString +"%-20s │ %7s │ %s │ %s\n",
 								"Album",
 								rs.getString("AlbumName"),
 								nullable(rs.getString("Duration")),
@@ -339,12 +342,18 @@ public class Queries {
 		//create statement using try-with-resources block to ensure close regardless of success
 		//setup rs and p_stmt
 		try (PreparedStatement p_stmt = conn.prepareStatement(
-                "SELECT audiofile.TrackID, audiofile.ReleaseName, audiofile.Duration, creator.Name AS Artist, creator.CreatorID "
-                + "FROM audiofile, createdby, creator, country "
-                + "WHERE audiofile.TrackID=createdby.TrackID "
-                + "AND createdby.CreatorID=creator.CreatorID "
-                + "AND country.CountryID=audiofile.CountryID "
-                + "AND country.Name=?;"))
+                "SELECT af.ReleaseName, year(al.ReleaseDate) AS Year, trim(LEADING ':' FROM (trim(LEADING '0' FROM (sec_to_time(Duration))))) AS Duration, cr.Name AS Artist, al.AlbumName" +
+				" FROM audiofile AS af" +
+				" LEFT JOIN createdby AS cb" +
+				" ON cb.TrackID = af.TrackID" +
+				" LEFT JOIN creator AS cr" +
+				" ON cb.CreatorID = cr.CreatorID" +
+				" LEFT JOIN country AS co" +
+				" ON af.CountryID = co.CountryID" +
+				" LEFT JOIN album AS al" +
+				" ON al.AlbumID = af.AlbumID" +
+				" WHERE co.Name= ?" +
+				" ORDER BY Artist DESC, AlbumName DESC;"))
 		{
             p_stmt.setString(1, country);
             try (ResultSet rs = p_stmt.executeQuery()) {
@@ -353,16 +362,15 @@ public class Queries {
 					System.out.println("No results found for country " + country);
 				} else {
 					//produce result
-					System.out.printf("%15s   %-41s   %5s   %-20s   %15s\n", "TrackID", "Track Name", "Drtn.", "Artist", "ArtistID");
+					System.out.printf("%4s   %-20s   %5s   %-20s   %-20s\n", "Year", "Track Name", "Drtn.", "Creator", "Album");
 					do {
-						//System.out.println(rs.getInt(1) + "\t" + rs.getString(2) + "\t" + rs.getInt(3) + "\t" + rs.getString(4) + "\t" + rs.getInt(5));
-						String tID = rs.getString("TrackId");
-						String t = abbreviate(rs.getString("ReleaseName"), 40);
-						String d = rs.getString("Duration");
-						String a = abbreviate(rs.getString ("Artist"), 19);
-						String aID = rs.getString("CreatorID");
-						System.out.printf("%15s │ %-41s │ %5s │ %-20s │ %15s\n", tID, t, d, a, aID);
-
+						System.out.printf("%4s | %-20s | %5s | %-20s | %-20s\n",
+							nullable(rs.getString("Year")),
+							abbreviate(rs.getString("ReleaseName"), 20),
+							rs.getString("Duration"),
+							abbreviate(rs.getString ("Artist"), 20),
+							abbreviate(rs.getString("AlbumName"), 20)
+						);
 					} while(rs.next());
 				}
 			}
@@ -380,31 +388,35 @@ public class Queries {
     public void getTracksLabel(String label_name){
 		//create statement using try-with-resources block to ensure close regardless of success
 		try (PreparedStatement p_stmt = conn.prepareStatement(
-                "SELECT AlbumName, date(ReleaseDate) AS ReleaseDate,trim(LEADING ':' FROM (trim(LEADING '0' FROM (sec_to_time(SUM(Duration)))))) AS Duration, MediaType, album.AlbumID AS AlbumID, recordlabel.Name AS Label, count(audiofile.TrackID) AS Count" +
-				" FROM recordlabel, album, audiofile" +
-				" WHERE recordlabel.Name = ?" +
-				" AND recordlabel.LabelID = album.LabelID" +
-				" AND album.AlbumID = audiofile.AlbumID" +
-				" GROUP BY album.AlbumID;"))
+                "SELECT AlbumName, date(ReleaseDate) AS ReleaseDate, MediaType, a.AlbumID AS AlbumID, r.Name AS Label, count(af.TrackID) AS Count, trim(LEADING ':' FROM (trim(LEADING '0' FROM (sec_to_time(SUM(Duration)))))) AS Duration\n" +
+				" FROM recordlabel AS r" +
+				" JOIN album AS a" +
+				" LEFT JOIN audiofile AS af" +
+				" ON af.AlbumID = a.AlbumID" +
+				" WHERE r.Name = ?" +
+				" AND r.LabelID = a.LabelID" +
+				" GROUP BY a.AlbumID;"))
 		{
             p_stmt.setString(1, label_name);
 			try (ResultSet rs = p_stmt.executeQuery()) {
 				//check for empty/broken result
 				if(!rs.next()) {
-					System.out.println("No results found for label " + label_name);
+					System.out.println("No albums found under label " + label_name);
 				} else {
 					//produce result
 					do {
-						System.out.printf("Album:   ┌─%-20s   %7s   %8s   %s   %s\n",
+						int count = rs.getInt("Count");
+						String boxString = (count > 0) ? "┌─" : "  ";
+						System.out.printf("Album: %2s%-20s | %7s | %8s | %10s\n",
+								boxString,
 								rs.getString("AlbumName"),
 								nullable(rs.getString("Duration")),
 								rs.getString("MediaType"),
-								nullable(rs.getString("Label")),
 								nullable(rs.getString("ReleaseDate"))
 						);
 
 						//print tracks for each album, if any are present
-						queryTracksByAlbumID(rs.getInt("AlbumID"), rs.getInt("Count"));
+						queryTracksByAlbumID(rs.getInt("AlbumID"), count);
 					} while(rs.next());
 				}
 			}
@@ -458,7 +470,7 @@ public class Queries {
 			}
 
 		} catch(Exception exc){
-			exc.printStackTrace();
+			System.out.println("Error getting average track duration: " + exc.getMessage());
 		}
 	}
 
@@ -486,7 +498,7 @@ public class Queries {
 				}
 			}
 		} catch(Exception exc){
-			exc.printStackTrace();
+			System.out.println("Error getting track count for album " + alb + ": " + exc.getMessage());
 		}
 	}
 
@@ -494,7 +506,7 @@ public class Queries {
 	/**
 	 * Returns a random list of tracks of size given by user.
 	 * 
-	 * @param list_size
+	 * @param list_size Maximum number of tracks to print
 	 */
 	public void getRandomTracks(int list_size){
 		//setup rs and p_stmt
@@ -531,8 +543,8 @@ public class Queries {
 				}
 			}
 	
-		} catch(Exception exc){
-			exc.printStackTrace();
+		} catch(Exception exc) {
+			System.out.println("Error getting random tracks: " + exc.getMessage());
 		}
 	}
 
@@ -544,7 +556,7 @@ public class Queries {
 	 * @return the albumID of the inserted album. -1 if insert failed.
 	 */
 	public int insertAlbum(String albumName, String date, String label, String mediaType) {
-		int albumID = -1;
+		int albumID;
 		int labelID = 0;
 		if (label != null) labelID = insertRecordLabel(label, null, 0);
 		//create statement using try-with-resources block to ensure close regardless of success
@@ -566,7 +578,7 @@ public class Queries {
 			System.out.println("Successfully inserted new album with ID: " + albumID);
 		} catch (SQLException e) {
 			System.out.println("Error when inserting album \"" + albumName + "\": " + e.getMessage());
-			return -1;
+			albumID = -1;
 		}
 		return albumID;
 	}
@@ -599,7 +611,7 @@ public class Queries {
 				System.out.println("Successfully inserted new record label with ID: " + labelID);
 			} catch (SQLException e) {
 				System.out.println("Error when inserting label \"" + label + "\": " + e.getMessage());
-				return -1;
+				labelID = -1;
 			}
 		}
 		return labelID;
@@ -613,6 +625,7 @@ public class Queries {
 	 */
 	public int getRecordLabelID(String label) {
 		//use try-with-resources block to ensure close regardless of success
+		int labelID;
 		try (PreparedStatement pStatement = conn.prepareStatement(
 					"SELECT LabelID " +
 					" FROM recordlabel" +
@@ -622,16 +635,13 @@ public class Queries {
 		{
 			pStatement.setString(1, label);
 			ResultSet rs = pStatement.executeQuery();
-			if (rs.next()) {
-				int labelID = rs.getInt("LabelID");
-				rs.close();
-				return labelID;
-			}
+			if (rs.next()) labelID = rs.getInt("LabelID");
+			else labelID = 0;
 		} catch (SQLException e) {
-			e.printStackTrace();
-			return -1;
+			System.out.println("Error getting record label ID: " + e.getMessage());
+			labelID = -1;
 		}
-		return 0;
+		return labelID;
 	}
 
 	/**
@@ -641,6 +651,8 @@ public class Queries {
 	 * @param rating Explicit rating of the file. 1 for explicit, 0 for clean.
 	 * @param duration Duration of the file in seconds.
 	 * @param countryID Country code for the file. Can be null.
+	 * @param albID The ID for the album this track belongs in.
+	 * @param creator The name of the creator of this track.
 	 * @return trackID File code for the inserted track.
 	 */
 	public int insertAudiofile(String name, Integer rating, Integer duration, Integer countryID, Integer albID, String creator){
@@ -663,42 +675,43 @@ public class Queries {
             //excute insert statement and commit result
             p_stmt.execute();
             conn.commit();
-            
-            Scanner in = new Scanner(System.in);;
-            int crtID = 0;
-            //insert trackID and creatorID into createdby table
-            try (PreparedStatement pstmt = conn.prepareStatement(
-    				"SELECT CreatorID " +
-    				"FROM creator " +
-    				"WHERE Name = ?;")){
-    			pstmt.setString(1, creator);
-    			try (ResultSet rs = pstmt.executeQuery()) {
-    				if(!rs.next()) {
-    					System.out.println("That creator was not found. Would you like to add new creator: " + creator + "? (q to quit, or y to add new creator: ");
-    					String answer = in.nextLine();
-    					if(answer.equals("y"))
-    						crtID = insertCreator(creator);
-    					else
-    						return 0;
-    				}
-    				else
-    					crtID = rs.getInt(1);
-    			}
-    		}
-            try (PreparedStatement pstmt2 = conn.prepareStatement("INSERT INTO adb.createdby "
-                    + "(TrackID, CreatorID) "
-                    + " VALUES (?, ?);")){
-            	 pstmt2.setInt(1, trackID);
-                 pstmt2.setInt(2, crtID);
-                 //execute
-                 pstmt2.execute();
-                 conn.commit();
-            }
+
+            if (creator != null && creator.length() > 0) {
+				int crtID = 0;
+				//insert trackID and creatorID into createdby table
+				try (PreparedStatement pstmt = conn.prepareStatement(
+						"SELECT CreatorID " +
+								"FROM creator " +
+								"WHERE Name = ?;")){
+					pstmt.setString(1, creator);
+					try (ResultSet rs = pstmt.executeQuery()) {
+						if(!rs.next()) {
+							System.out.print("That creator was not found. Would you like to add new creator: " + creator + "? (q to quit, or y to add new creator: ");
+							String answer = in.nextLine();
+							if(answer.equals("y"))
+								crtID = insertCreator(creator);
+							else
+								trackID = -1;
+						}
+						else
+							crtID = rs.getInt(1);
+					}
+				}
+				try (PreparedStatement pstmt2 = conn.prepareStatement("INSERT INTO adb.createdby "
+						+ "(TrackID, CreatorID) "
+						+ " VALUES (?, ?);")){
+					pstmt2.setInt(1, trackID);
+					pstmt2.setInt(2, crtID);
+					//execute
+					pstmt2.execute();
+					conn.commit();
+				}
+			}
             System.out.println("New Track " + name + " added successfully with ID: " + trackID);
 
         } catch(SQLException sexc) {
 			System.out.println("Error inserting track: " + sexc.getMessage());
-            return -1;
+            trackID = -1;
     	}
     	return trackID;
 	}
@@ -711,6 +724,7 @@ public class Queries {
 	 */
 	public boolean addGenreToTrack(int trackID, String genre) {
 		//use try-with-resources block to ensure close regardless of success
+		boolean success;
 		try (PreparedStatement pStatement = conn.prepareStatement(
 					"INSERT INTO adb.ingenre (TrackID, GenreID)" +
 					" VALUES (?, ?);"))
@@ -719,11 +733,12 @@ public class Queries {
 			pStatement.setString(2, genre);
 			pStatement.execute();
 			conn.commit();
+			success = true;
 		} catch (SQLException e) {
 			System.out.println("Error adding Genre " + genre + " to trackID " + trackID + ": " + e.getMessage());
-			return false;
+			success = false;
 		}
-		return true;
+		return success;
 	}
 	
 	/**
@@ -742,11 +757,10 @@ public class Queries {
 			pStatement.setString(2, name);
 			pStatement.execute();
 			conn.commit();
-			pStatement.close();
 			System.out.println("Successfully inserted new creator with ID: " + creatorID);
 		} catch (SQLException e) {
 			System.out.println("Error when inserting creator \"" + name + "\": " + e.getMessage());
-			return -1;
+			creatorID = -1;
 		}
 		return creatorID;
 	}
@@ -768,7 +782,6 @@ public class Queries {
 			else pStatement.setNull(2, Types.VARCHAR);
 			pStatement.execute();
 			conn.commit();
-			pStatement.close();
 			System.out.println("Successfully inserted new genre: " + genreID);
 		} catch(SQLIntegrityConstraintViolationException e) {
 			System.out.println("Genre already exists in the database.");
@@ -793,13 +806,12 @@ public class Queries {
 			pStatement.setString(2, name);
 			pStatement.execute();
 			conn.commit();
-			pStatement.close();
 			System.out.println("Successfully inserted new country with ID: " + countryID);
 		} catch(SQLIntegrityConstraintViolationException e) {
 			System.out.println("Country already exists in the database.");
 		} catch (SQLException e) {
 			System.out.println("Error when inserting country \"" + name + "\": " + e.getMessage());
-			return -1;
+			countryID = -1;
 		}
 		return countryID;
 	}
@@ -816,7 +828,7 @@ public class Queries {
 				"FROM genre " +
 				"WHERE GenreID = ?;"))
 		{
-			String oldDescrip = null;
+			String oldDescrip;
 			pstmt.setString(1, genre);
 			try (ResultSet rs = pstmt.executeQuery()) {
 				if(!rs.next()) {
@@ -836,7 +848,6 @@ public class Queries {
 				pStatement.setString(2, genre);
 				pStatement.executeUpdate();
 				conn.commit();
-				pStatement.close();
 				System.out.println("Successfully updated new genre description: " + genre);
 				System.out.println("Description " + oldDescrip +" is now: " + descrip);
 			}
@@ -857,7 +868,7 @@ public class Queries {
 				"FROM recordlabel " +
 				"WHERE Name = ?;"))
 		{
-			String oldCountry = null;
+			String oldCountry;
 			pstmt.setString(1, label);
 			try (ResultSet rs = pstmt.executeQuery()) {
 				if(!rs.next()) {
@@ -878,7 +889,6 @@ public class Queries {
 				pStatement.setString(2, label);
 				pStatement.executeUpdate();
 				conn.commit();
-				pStatement.close();
 				System.out.println("Successfully updated new country for Record Label: " + label);
 				System.out.println("CountryID " + oldCountry +" of " + label + " is now: " + country);
 			}
@@ -914,15 +924,12 @@ public class Queries {
 					"WHERE Name = ?;"))
 			{
 				//set values to insert
-				//int cID = getCountryID(country);
 				if (date != null) pStatement.setString(1, date);
 				else pStatement.setNull(1, Types.DATE);
 				pStatement.setString(2, label);
 				pStatement.executeUpdate();
 				conn.commit();
-				pStatement.close();
-				System.out.println("Successfully updated Founding Date for Record Label: " + label);
-				System.out.println("Founding Date " + oldDate +" of " + label + " is now: " + date);
+				System.out.println("Success. Founding date of " + label +" is now: " + date);
 			}
 		}catch(SQLException e) {
 			System.out.println("Error when updating label: " + label + ": " + e.getMessage());
@@ -931,43 +938,42 @@ public class Queries {
 
 	/**
 	 * updateAlbumRD allows for changing the release date of an existing album
-	 * @param album name of album to update
+	 * @param albumID the ID of the album to update
 	 * @param date the updated release date
 	 */
-	public void updateAlbumRD(String album, String date) {
+	public void updateAlbumRD(int albumID, String date) {
 		//use try-with-resources block to ensure close regardless of success
 		try (PreparedStatement pstmt = conn.prepareStatement(
-				"SELECT AlbumID, ReleaseDate " +
-				"FROM album " +
-				"WHERE AlbumName = ?;"))
+				"SELECT ReleaseDate, AlbumName " +
+				" FROM album " +
+				" WHERE AlbumID = ?;"))
 		{
 			String oldDate = null;
-			pstmt.setString(1, album);
+			String album;
+			pstmt.setInt(1, albumID);
 			try (ResultSet rs = pstmt.executeQuery()) {
 				if(!rs.next()) {
 					System.out.println("That album does not exist yet.");
 					return;
 				}
-				oldDate = rs.getString(2);
+				oldDate = rs.getString("ReleaseDate");
+				album = rs.getString("AlbumName");
 			}
 			try (PreparedStatement pStatement = conn.prepareStatement(
 					"UPDATE adb.album "+ 
-					"SET ReleaseDate = ? " +
-					"WHERE AlbumName = ?;"))
+					" SET ReleaseDate = ? " +
+					" WHERE AlbumID = ?;"))
 			{
 				//set values to insert
-				//int cID = getCountryID(country);
 				if (date != null) pStatement.setString(1, date);
 				else pStatement.setNull(1, Types.DATE);
-				pStatement.setString(2, album);
+				pStatement.setInt(2, albumID);
 				pStatement.executeUpdate();
 				conn.commit();
-				pStatement.close();
-				System.out.println("Successfully updated release date for album: " + album);
-				System.out.println("Founding Date " + oldDate +" of " + album + " is now: " + date);
+				System.out.println("Success. Release date of " + album +" is now: " + date);
 			}
 		}catch(SQLException e) {
-			System.out.println("Error when updating label: " + album + ": " + e.getMessage());
+			System.out.println("Error when updating release date for albumID " + albumID + ": " + e.getMessage());
 		} 
 	}
 
@@ -983,7 +989,7 @@ public class Queries {
 				"FROM album " +
 				"WHERE AlbumName = ?;"))
 		{
-			String oldLabel = null;
+			String oldLabel;
 			pstmt.setString(1, album);
 			try (ResultSet rs = pstmt.executeQuery()) {
 				if(!rs.next()) {
@@ -998,9 +1004,8 @@ public class Queries {
 					"WHERE AlbumName = ?;"))
 			{
 				//set values to insert
-				int rlID = 0;
 				if (label != null) { 
-					rlID = getRecordLabelID(label);
+					int rlID = getRecordLabelID(label);
 					if (rlID == 0 || rlID == -1) {
 						System.out.println("There was an error finding the specified Record Label");
 						return;
@@ -1011,9 +1016,7 @@ public class Queries {
 				pStatement.setString(2, album);
 				pStatement.executeUpdate();
 				conn.commit();
-				pStatement.close();
-				System.out.println("Successfully updated record label for album: " + album);
-				System.out.println("Record LabelID " + oldLabel +" of " + album + " is now: " + rlID);
+				System.out.println("Success. Record LabelID (" + oldLabel +") of " + album + " is now: " + label);
 			}
 		}catch(SQLException e) {
 			System.out.println("Error when updating label: " + album + ": " + e.getMessage());
@@ -1023,8 +1026,8 @@ public class Queries {
 	/**
 	 * Allows user to change country associated with track
 	 * 
-	 * @param track_name
-	 * @param c_name
+	 * @param track_name Name of track to update
+	 * @param c_name New country name
 	 */
 	public void updateCountryIDaf(String track_name, String c_name){
 	
@@ -1039,45 +1042,40 @@ public class Queries {
 			System.out.println("Successfully updated country for " + track_name + " to: " + c_name);
 	
 		}catch(Exception exc){
-			exc.printStackTrace();
+			System.out.println("Error updating country " + c_name + "'s ID: " + exc.getMessage());
 		}
 	} 
 	
 	/**
-	 * Helper method returns countryID given a coutnry name 
+	 * Helper method returns countryID given a country name
 	 * 
-	 * @param c_name
-	 * @return
+	 * @param c_name Country name to find ID for.
+	 * @return ID for requested country, or -1 if not present.
 	 */
 	public int getCountryID(String c_name){
+		int result = 0;
 		try(PreparedStatement p_stmt = conn.prepareStatement(
 			"SELECT country.CountryID FROM country WHERE country.Name=?;"
-		)){
+		)) {
 			p_stmt.setString(1, c_name);
-			try(ResultSet rs = p_stmt.executeQuery()){
-				if(rs.next()){
-					int c_id = rs.getInt(1);
-					return c_id;
-				}else{
-					System.out.println("Error: returning unnamed countryID");
-					return -1;
-				}
+			try (ResultSet rs = p_stmt.executeQuery()) {
+				if (rs.next()) result = rs.getInt(1);
+				else result = -1;
 			}
-	
-		}catch(Exception exc){
-			exc.printStackTrace();
+		} catch(Exception exc) {
+			System.out.println("Error getting country ID for " + c_name + ": " + exc.getMessage());
 		}
-		return -1;
+		return result;
 	}
 	
 	/**
-	 * Deletes Creator and all audiofiles by the creator
+	 * Deletes Creator and all audio files by the creator
 	 * 
 	 * @param creatorID the ID of the creator to delete
-	 * @return
+	 * @return Number of creators deleted (1), or -1 if error occurs.
 	 */
 	public int deleteCreator(int creatorID) {
-		int count = 0;
+		int count;
 		try(PreparedStatement p_stmt = conn.prepareStatement(
 				"DELETE" +
 				" FROM creator" +
@@ -1087,8 +1085,8 @@ public class Queries {
 			count = p_stmt.executeUpdate();
 			conn.commit();
 		} catch(SQLException e){
-			e.printStackTrace();
-			return-1;
+			System.out.println("Error deleting creatorID " + creatorID + ": " + e.getMessage());
+			count = -1;
 		}
 		return count;
 	}
@@ -1097,10 +1095,10 @@ public class Queries {
 	 * Deletes album and all audiofiles on the album
 	 * 
 	 * @param albumID ID of the album to delete
-	 * @return
+	 * @return Number of items deleted (0/1), or -1 if an error occured.
 	 */
 	public int deleteAlbum(int albumID) {
-		int items = 0;
+		int items;
 		try (PreparedStatement p_stmt = conn.prepareStatement(
 				"DELETE" +
 				" FROM album" +
@@ -1110,6 +1108,7 @@ public class Queries {
 			conn.commit();
 		} catch (Exception exc) {
 			System.out.println("Error when deleting albumID \"" + albumID + "\": " + exc.getMessage());
+			items = -1;
 		}
 		return items;
 	}
@@ -1119,10 +1118,10 @@ public class Queries {
 	 * Deletes an audiofile
 	 * 
 	 * @param trackID the ID of the track to delete
-	 * @return
+	 * @return Number of tracks deleted, or -1 if error occurs.
 	 */
 	public int deleteTrack(int trackID) {
-		int count = 0;
+		int count;
 		try(PreparedStatement preparedS = conn.prepareStatement(
 				"DELETE" +
 				" FROM audiofile" +
@@ -1132,7 +1131,8 @@ public class Queries {
 			count = preparedS.executeUpdate();
 			conn.commit();
 		} catch(SQLException e) {
-			e.printStackTrace();
+			System.out.println("Error deleting trackID " + trackID + ": " + e.getMessage());
+			count = -1;
 		}
 		return count;
 	}
@@ -1140,11 +1140,11 @@ public class Queries {
 	/**
 	 * Deletes a genre
 	 * 
-	 * @param genre Genre to be deleted
-	 * @return
+	 * @param genre Genre to be deleted.
+	 * @return Number of genres deleted (0/1), or -1 if error occurs.
 	 */
 	public int deleteGenre(String genre) {
-		int count = 0;
+		int count;
 		try(PreparedStatement pstmt = conn.prepareStatement(
 			"DELETE" +
 			" FROM genre" +
@@ -1154,8 +1154,8 @@ public class Queries {
 			count = pstmt.executeUpdate();
 			conn.commit();
 		} catch(SQLException e) {
-			e.printStackTrace();
-			return -1;
+			System.out.println("Error deleting genre" + genre + ": " + e.getMessage());
+			count = -1;
 		}
 		return count;
 	}
@@ -1163,8 +1163,8 @@ public class Queries {
 	/**
 	 * Deletes a label
 	 * 
-	 * @param label
-	 * @return
+	 * @param label Name of label to delete.
+	 * @return Number of labels deleted (0/1), or -1 if error occurs.
 	 */
 	public int deleteLabel(String label) {
 		int labelID = getRecordLabelID(label);
@@ -1181,7 +1181,8 @@ public class Queries {
 				count = pstmt.executeUpdate();
 				conn.commit();
 			} catch(SQLException e) {
-				e.printStackTrace();
+				System.out.println("Error deleting label" + label + ": " + e.getMessage());
+				count = -1;
 			}
 		}
 		return count;
