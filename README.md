@@ -1,5 +1,11 @@
 # Zene
 
+## Database setup
+Run the provided .sql files in the following order:  
+`ser322 - group 17 - database setup.sql`  
+`ser322 - group 17 - sample data.sql`  
+`ser322 - group 17 - sample queries.sql` 
+
 ## Compiling the program
 Navigate your terminal of choice to the folder named src and run the following command:  
     `javac -encoding utf8 ./main/java/Zene.java `   
